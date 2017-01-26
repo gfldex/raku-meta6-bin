@@ -1,4 +1,4 @@
-# Pod::To::BigPage
+# META6-bin
 [![Build Status](https://travis-ci.org/gfldex/perl6-meta6-bin.svg?branch=master)](https://travis-ci.org/gfldex/perl6-meta6-bin)
 
 Create and check META6.json files.
