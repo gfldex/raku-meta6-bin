@@ -1,0 +1,26 @@
+#! /usr/bin/env perl6
+
+use META6;
+use HTTP::Client;
+
+my @path = «%*ENV<HOME>/.meta6»».IO;
+my $cfg-dir = %*ENV<HOME>.IO.child('.meta6');
+
+if $cfg-dir.e & !$cfg-dir.d {
+    warn "WARN: ⟨$cfg-dir⟩ is not a directory.";
+}
+
+sub first-hit($basename){
+    @path».child($basename).grep(*.e & *.r).first
+}
+
+sub MAIN(Bool :$create-cfg-dir, Bool :$check, IO(Str) :$meta6-file = 'META6.json'){
+    if $create-cfg-dir {
+        die "⟨$cfg-dir⟩ already exists" if $cfg-dir.e;
+        mkdir $cfg-dir and say "Created ⟨$cfg-dir⟩."
+    }
+
+    if $check {
+        my $meta6 = META6.new($meta6-file);
+    }
+}
