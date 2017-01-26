@@ -21,6 +21,12 @@ sub MAIN(Bool :$create-cfg-dir, Bool :$check, IO(Str) :$meta6-file = 'META6.json
     }
 
     if $check {
-        my $meta6 = META6.new($meta6-file);
+        my $meta6 = META6.new(file => $meta6-file) or die "Failed to process ⟨$meta6-file⟩.";
+        
+        with $meta6<source-url> {
+            if $meta6<source-url> ~~ /^ 'git://' / {
+                note „WARN: Schema git:// used in source-url. Use https:// to avoid logins and issues thanks to dependence on git.“;
+            }
+        }
     }
 }
