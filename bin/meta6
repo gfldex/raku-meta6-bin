@@ -22,7 +22,7 @@ sub first-hit($basename){
 sub MAIN(Bool :$create-cfg-dir, Bool :$check, IO(Str) :$meta6-file = 'META6.json',
          Bool :$create, Bool :$force,
          Str :$name, Str :$description = '',
-         Str :$version = (v0.0.1).Str, Str :$perl = (v6).Str,
+         Str :$version = (v0.0.1).Str, Str :$perl = (v6.c).Str,
          Str :$author =  "$github-realname <$github-email>",
          Str :$auth = "github:$github-user")
 {

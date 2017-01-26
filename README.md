@@ -18,7 +18,7 @@ Create and check META6.json files.
     --name
     --description
     --version # defaults to 0.0.1
-    --perl # defaults to 6
+    --perl # defaults to 6.c
     --author # defaults to user/name from ~/.gitconfig
     --auth # defaults to credentials/username from ~/.gitconfig
 
