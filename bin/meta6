@@ -65,8 +65,8 @@ multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'MET
     }
 }
 
-multi sub MAIN(Bool :$new-module, :$name, Bool :$force, :$skip-git, :$skip-github) {
-    die "To create a module --name=<Module::Name::Here> is required." unless $name;
+multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-github) {
+    die "To create a module --new-module=<Module::Name::Here> is required." unless $new-module;
     my $base-dir = 'perl6-' ~ $name.subst('::', '-').fc;
     die "Directory ⟨$base-dir⟩ already exists, the --force needs to be with you." if $base-dir.IO.e && !$force;
     say "Creating new module $name under ⟨$base-dir⟩.";
