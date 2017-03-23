@@ -46,6 +46,7 @@ multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'MET
 
         my $meta6 = META6.new(:$name, :$description, version => Version.new($version), perl-version => Version.new($perl), authors => [$author], :$auth,
                               source-url => "https://github.com/$github-user/$name",
+                              depends => [ "Test::META" ],
                               provides => {}, license => 'Artistic 2.0', production => False);
         $meta6-file.spurt($meta6.to-json);
     }
@@ -76,6 +77,7 @@ multi sub MAIN(Bool :$new-module, :$name, Bool :$force, :$skip-git, :$skip-githu
     }
 
     create-readme($base-dir, $name);
+    create-meta-t($base-dir);
 
     MAIN(:create, :$name, :$base-dir, :$force);
     git-create($base-dir) unless $skip-git;
@@ -92,13 +94,13 @@ sub git-create($base-dir) {
     await Promise.anyof($p = $git.start, $timeout);
     fail "⟨git init⟩ timed out." if $p.status == Broken;
     
-    $git = Proc::Async.new('git', '-C', $base-dir, 'add', 'META6.json', 'README.md');
+    $git = Proc::Async.new('git', '-C', $base-dir, 'add', 'META6.json', 'README.md', 't/meta.t');
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
     fail "⟨git add⟩ timed out." if $p.status == Broken;
     
-    $git = Proc::Async.new('git', '-C', $base-dir, 'commit', 'META6.json', 'README.md', '-m', 'initial commit, add META6.json, README.md');
+    $git = Proc::Async.new('git', '-C', $base-dir, 'commit', 'META6.json', 'README.md', 't/meta.t', '-m', 'initial commit, add META6.json, README.md, meta.t');
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
@@ -164,5 +166,19 @@ sub create-readme($base-dir, $name) {
     public domain.
     
     ⓒ{ now.Date.year } $github-realname
+    EOH
+}
+
+sub create-meta-t($base-dir) {
+    spurt("$base-dir/t/meta.t", Q:to<EOH>);
+    use v6;
+    
+    use lib 'lib';
+    use Test;
+    use Test::META;
+    
+    meta-ok;
+    
+    done-testing;
     EOH
 }
