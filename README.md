@@ -1,10 +1,13 @@
 # META6-bin
 [![Build Status](https://travis-ci.org/gfldex/perl6-meta6-bin.svg?branch=master)](https://travis-ci.org/gfldex/perl6-meta6-bin)
 
-Create and check META6.json files.
+Create and check META6.json files and module skeletons.
 
 Depends on `git` and `curl` in `$PATH` and got a timeout of 60s for each call
 to both.
+
+Module skeletons include basic directories, `META6.json`, `t/meta.t` and a
+`README.md`. The latter includes a link to [travis-ci](https://travis-ci.org/).
 
 # SYNOPSIS
 
