@@ -3,12 +3,15 @@
 
 Create and check META6.json files.
 
+Depends on `git` and `curl` in `$PATH` and got a timeout of 60s for each call
+to both.
+
 # SYNOPSIS
 
     meta6 --create --name=<project-name-here> --force
     meta6 --check
     meta6 --create-cfg-dir
-    meta6 --new-module --name=<Module::Name::Here> --force
+    meta6 --new-module --name=<Module::Name::Here> --force --skip-git --skip-github
 
 # General Options
 
