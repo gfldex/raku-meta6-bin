@@ -4,7 +4,7 @@
 Create and check META6.json files and module skeletons.
 
 Depends on `git` and `curl` in `$PATH` and got a timeout of 60s for each call
-to both.
+to both. Those are used to setup a git and github repo.
 
 Module skeletons include basic directories, `META6.json`, `t/meta.t`,
 `.travis.yml` and a `README.md`. The latter includes a link to
