@@ -8,6 +8,7 @@ Create and check META6.json files.
     meta6 --create --name=<project-name-here> --force
     meta6 --check
     meta6 --create-cfg-dir
+    meta6 --new-module --name=<Module::Name::Here> --force
 
 # General Options
 
