@@ -4,6 +4,7 @@ use v6;
 use META6;
 use HTTP::Client;
 use Git::Config;
+use JSON::Tiny;
 
 my @path = «%*ENV<HOME>/.meta6»».IO;
 my $cfg-dir = %*ENV<HOME>.IO.child('.meta6');
@@ -63,7 +64,7 @@ multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'MET
     }
 }
 
-multi sub MAIN(Bool :$new-module, :$name, Bool :$force) {
+multi sub MAIN(Bool :$new-module, :$name, Bool :$force, :$skip-git, :$skip-github) {
     die "To create a module --name=<Module::Name::Here> is required." unless $name;
     my $base-dir = 'perl6-' ~ $name.subst('::', '-').fc;
     die "Directory ⟨$base-dir⟩ already exists, the --force needs to be with you." if $base-dir.IO.e && !$force;
@@ -75,22 +76,48 @@ multi sub MAIN(Bool :$new-module, :$name, Bool :$force) {
     }
 
     MAIN(:create, :$name, :$base-dir, :$force);
-    git-create($base-dir);
+    git-create($base-dir) unless $skip-git;
+    github-create($base-dir) unless $skip-git && $skip-github;
 }
 
 sub git-create($base-dir) {
     my $git = Proc::Async.new('git', 'init', $base-dir);
+    my Promise $p;
     my $timeout = Promise.at(now + 60);
 
-    await Promise.anyof($git.start, $timeout.then({ note "⟨git init⟩ timed out."}));
+    await Promise.anyof($p = $git.start, $timeout);
+    note "⟨git init⟩ timed out." if $p.status == Broken;
     
-    $git = Proc::Async.new('git', 'add', "$base-dir/META6.json");
+    $git = Proc::Async.new('git', '-C', $base-dir, 'add', 'META6.json');
     $timeout = Promise.at(now + 60);
     
-    await Promise.anyof($git.start, $timeout.then({ note "⟨git init⟩ timed out."}));
+    await Promise.anyof($p = $git.start, $timeout);
+    note "⟨git add⟩ timed out." if $p.status == Broken;
     
-    $git = Proc::Async.new('git', 'commit', "$base-dir/META6.json", '-m', 'initial commit, add META6.json');
+    $git = Proc::Async.new('git', '-C', $base-dir, 'commit', 'META6.json', '-m', 'initial commit, add META6.json');
     $timeout = Promise.at(now + 60);
     
-    await Promise.anyof($git.start, $timeout.then({ note "⟨git init⟩ timed out."}));
+    await Promise.anyof($p = $git.start, $timeout);
+    note "⟨git commit⟩ timed out." if $p.status == Broken;
+}
+
+sub github-create($base-dir) {
+    # say 'curl', '-u', $github-user, 'https://api.github.com/user/repos', '-d', '{"name":"' ~ $base-dir ~ '"}';
+    my $curl = Proc::Async.new('curl', '--silent', '-u', $github-user, 'https://api.github.com/user/repos', '-d', '{"name":"' ~ $base-dir ~ '"}');
+    my Promise $p;
+    my $github-response;
+    $curl.stdout.tap: { $github-response ~= .Str };
+    my $timeout = Promise.at(now + 60);
+
+    await Promise.anyof($p = $curl.start, $timeout);
+    note "⟨curl⟩ timed out." if $p.status == Broken;
+    
+    given from-json($github-response) {
+        when .<errors>:exists {
+            say .<message>.subst('.', ''), ": ", .<errors>.[0].<message>.subst('name', $base-dir), '.';
+        }
+        when .<full_name>:exists {
+            say 'GitHub project created at https://github.com/' ~ .<full_name> ~ '.';
+        }
+    }
 }
