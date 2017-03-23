@@ -15,24 +15,32 @@ if $cfg-dir.e & !$cfg-dir.d {
     note "WARN: ⟨$cfg-dir⟩ is not a directory.";
 }
 
-sub first-hit($basename){
+sub first-hit($basename) {
     @path».child($basename).grep(*.e & *.r).first
 }
 
-sub MAIN(Bool :$create-cfg-dir, Bool :$check, IO(Str) :$meta6-file = 'META6.json',
+sub try-to-fetch-url($_) {
+    my $response = HTTP::Client.new.head(.Str, :follow);
+    dd $response;
+}
+
+multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'META6.json',
          Bool :$create, Bool :$force,
          Str :$name, Str :$description = '',
          Str :$version = (v0.0.1).Str, Str :$perl = (v6.c).Str,
          Str :$author =  "$github-realname <$github-email>",
-         Str :$auth = "github:$github-user")
-{
+         Str :$auth = "github:$github-user",
+         Str :$base-dir = '.'
+) {
+    my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
+
     if $create-cfg-dir {
         die "⟨$cfg-dir⟩ already exists" if $cfg-dir.e;
         mkdir $cfg-dir and say "Created ⟨$cfg-dir⟩."
     }
 
     if $create {
-        die "Wont create ⟨$meta6-file⟩, file already exists" if $meta6-file.e && !$force;
+        die "File ⟨$meta6-file⟩ already exists, the --force needs to be with you." if $meta6-file.e && !$force;
         die "To create a META6.json --name=<project-name-here> is required." unless $name;
 
         my $meta6 = META6.new(:$name, :$description, version => Version.new($version), perl-version => Version.new($perl), authors => [$author], :$auth,
@@ -48,6 +56,23 @@ sub MAIN(Bool :$create-cfg-dir, Bool :$check, IO(Str) :$meta6-file = 'META6.json
             if $meta6<source-url> ~~ /^ 'git://' / {
                 note „WARN: Schema git:// used in source-url. Use https:// to avoid logins and issues thanks to dependence on git.“;
             }
+            if !try-to-fetch-url($meta6<source-url>) {
+                note „WARN: Failed to reach $meta6<source-url>.“;
+            }
         }
     }
+}
+
+multi sub MAIN(Bool :$new-module, :$name, Bool :$force) {
+    die "To create a module --name=<Module::Name::Here> is required." unless $name;
+    my $base-dir = 'perl6-' ~ $name.subst('::', '-').fc;
+    die "Directory ⟨$base-dir⟩ already exists, the --force needs to be with you." if $base-dir.IO.e && !$force;
+    say "Creating new module $name under ⟨$base-dir⟩.";
+    $base-dir.IO.mkdir or die "Cannot create ⟨$base-dir⟩: $!";
+    for <lib t bin example> {
+        my $dir = $base-dir ~ '/' ~ .Str;
+        $dir.IO.mkdir or die "Cannot create ⟨$dir⟩: $!";
+    }
+
+    MAIN(:create, :$name, :$base-dir, :$force);
 }
