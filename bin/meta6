@@ -75,6 +75,8 @@ multi sub MAIN(Bool :$new-module, :$name, Bool :$force, :$skip-git, :$skip-githu
         $dir.IO.mkdir or die "Cannot create ⟨$dir⟩: $!";
     }
 
+    create-readme($base-dir, $name);
+
     MAIN(:create, :$name, :$base-dir, :$force);
     git-create($base-dir) unless $skip-git;
     github-create($base-dir) unless $skip-git && $skip-github;
@@ -90,13 +92,13 @@ sub git-create($base-dir) {
     await Promise.anyof($p = $git.start, $timeout);
     fail "⟨git init⟩ timed out." if $p.status == Broken;
     
-    $git = Proc::Async.new('git', '-C', $base-dir, 'add', 'META6.json');
+    $git = Proc::Async.new('git', '-C', $base-dir, 'add', 'META6.json', 'README.md');
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
     fail "⟨git add⟩ timed out." if $p.status == Broken;
     
-    $git = Proc::Async.new('git', '-C', $base-dir, 'commit', 'META6.json', '-m', 'initial commit, add META6.json');
+    $git = Proc::Async.new('git', '-C', $base-dir, 'commit', 'META6.json', 'README.md', '-m', 'initial commit, add META6.json, README.md');
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
@@ -134,9 +136,33 @@ sub git-push($base-dir) {
     await Promise.anyof($p = $git.start, $timeout);
     fail "⟨git remote⟩ timed out." if $p.status == Broken;
     
+    say "Pushing repo to github.";
     $git = Proc::Async.new('git', '-C', $base-dir, 'push', 'origin', 'master');
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
     fail "⟨git push⟩ timed out." if $p.status == Broken;
+}
+
+sub create-readme($base-dir, $name) {
+    spurt("$base-dir/README.md", qq:to<EOH>);
+    # $name
+    
+    [![Build Status](https://travis-ci.org/$github-user/$base-dir.svg?branch=master)](https://travis-ci.org/$github-user/$base-dir)
+
+    ## SYNOPSIS
+    
+    ```
+    use $name;
+    ```
+    
+    ## LICENSE
+    
+    All files (unless noted otherwise) can be used, modified and redistributed
+    under the terms of the Artistic License Version 2. Examples (in the
+    documentation, in tests or distributed as separate files) can be considered
+    public domain.
+    
+    ⓒ{ now.Date.year } $github-realname
+    EOH
 }
