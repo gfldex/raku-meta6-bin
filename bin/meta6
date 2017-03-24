@@ -22,7 +22,8 @@ sub first-hit($basename) {
 
 sub try-to-fetch-url($_) {
     my $response = HTTP::Client.new.head(.Str, :follow);
-    dd $response;
+    CATCH { default { $response = Nil } }
+    200 <= $response.?status < 400
 }
 
 multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'META6.json',
