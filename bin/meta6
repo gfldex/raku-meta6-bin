@@ -31,7 +31,8 @@ multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'MET
          Str :$version = (v0.0.1).Str, Str :$perl = (v6.c).Str,
          Str :$author =  "$github-realname <$github-email>",
          Str :$auth = "github:$github-user",
-         Str :$base-dir = '.'
+         Str :$base-dir = '.',
+         Bool :$verbose
 ) {
     my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
 
@@ -65,10 +66,10 @@ multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'MET
     }
 }
 
-multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-github) {
+multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-github, :$verbose) {
     my $name = $new-module;
     die "To create a module --new-module=<Module::Name::Here> is required." unless $name;
-    my $base-dir = 'perl6-' ~ $name.subst('::', '-').fc;
+    my $base-dir = 'perl6-' ~ $name.subst(:g, '::', '-').fc;
     die "Directory ⟨$base-dir⟩ already exists, the --force needs to be with you." if $base-dir.IO.e && !$force;
     say "Creating new module $name under ⟨$base-dir⟩.";
     $base-dir.IO.mkdir or die "Cannot create ⟨$base-dir⟩: $!";
@@ -84,7 +85,7 @@ multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-gith
     MAIN(:create, :$name, :$base-dir, :$force);
     git-create($base-dir) unless $skip-git;
     github-create($base-dir) unless $skip-git && $skip-github;
-    git-push($base-dir) unless $skip-git && $skip-github;
+    git-push($base-dir, :$verbose) unless $skip-git && $skip-github;
 }
 
 sub git-create($base-dir) {
@@ -123,7 +124,7 @@ sub github-create($base-dir) {
     
     given from-json($github-response) {
         when .<errors>:exists {
-            fail .<message>.subst('.', ''), ": ", .<errors>.[0].<message>.subst('name', $base-dir), '.';
+            fail .<message>.subst(:g, '.', ''), ": ", .<errors>.[0].<message>.subst('name', $base-dir), '.';
         }
         when .<full_name>:exists {
             say 'GitHub project created at https://github.com/' ~ .<full_name> ~ '.';
@@ -131,10 +132,11 @@ sub github-create($base-dir) {
     }
 }
 
-sub git-push($base-dir) {
+sub git-push($base-dir, :$verbose) {
     my Promise $p;
 
     my $git = Proc::Async.new('git', '-C', $base-dir, 'remote', 'add', 'origin', "https://github.com/$github-user/$base-dir");
+    $git.stdout.tap: { Nil } unless $verbose;
     my $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
@@ -142,6 +144,7 @@ sub git-push($base-dir) {
     
     say "Pushing repo to github.";
     $git = Proc::Async.new('git', '-C', $base-dir, 'push', 'origin', 'master');
+    $git.stdout.tap: { Nil } unless $verbose;
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
