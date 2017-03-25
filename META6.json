@@ -1,6 +1,6 @@
 {
     "name" : "META6::bin",
-    "version" : "0.0.4",
+    "version" : "0.0.5",
     "perl" : "6.c",
     "description" : "Provide a binary to work with META6.json-files.",
     "authors" : [ "Wenzel P. P. Peppmeyer" ],
