@@ -7,11 +7,6 @@ use Git::Config;
 use JSON::Tiny;
 
 # enum ANSI(reset => 0, bold => 1, underline => 2, inverse => 7, black => 30, red => 31, green => 32, yellow => 33, blue => 34, magenta => 35, cyan => 36, white => 37, default => 39, on_black => 40, on_red => 41, on_green   => 42, on_yellow  => 43, on_blue => 44, on_magenta => 45, on_cyan    => 46, on_white   => 47, on_default => 49);
-# 
-# constant RESET = "\e[{reset.value}m";
-# constant DEFAULT = "\e[39m";
-# constant RED = "\e[31m";
-# constant BOLD = "\e[1m";
 
 my &BOLD = sub (*@s) {
     "\e[1m{@s.join('')}\e[0m"
@@ -129,7 +124,6 @@ sub git-create($base-dir) {
 }
 
 sub github-create($base-dir) {
-    # say 'curl', '-u', $github-user, 'https://api.github.com/user/repos', '-d', '{"name":"' ~ $base-dir ~ '"}';
     my $curl = Proc::Async.new('curl', '--silent', '-u', $github-user, 'https://api.github.com/user/repos', '-d', '{"name":"' ~ $base-dir ~ '"}');
     my Promise $p;
     my $github-response;
