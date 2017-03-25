@@ -6,6 +6,23 @@ use HTTP::Client;
 use Git::Config;
 use JSON::Tiny;
 
+# enum ANSI(reset => 0, bold => 1, underline => 2, inverse => 7, black => 30, red => 31, green => 32, yellow => 33, blue => 34, magenta => 35, cyan => 36, white => 37, default => 39, on_black => 40, on_red => 41, on_green   => 42, on_yellow  => 43, on_blue => 44, on_magenta => 45, on_cyan    => 46, on_white   => 47, on_default => 49);
+# 
+# constant RESET = "\e[{reset.value}m";
+# constant DEFAULT = "\e[39m";
+# constant RED = "\e[31m";
+# constant BOLD = "\e[1m";
+
+my &BOLD = sub (*@s) {
+    "\e[1m{@s.join('')}\e[0m"
+}
+
+my &RED = sub (*@s) {
+    "\e[31m{@s.join('')}\e[0m"
+}
+
+&BOLD = &RED = sub (Stringy $s) { $s } unless $*OUT.t;
+
 my @path = «%*ENV<HOME>/.meta6»».IO;
 my $cfg-dir = %*ENV<HOME>.IO.child('.meta6');
 my $github-user = git-config<credential><username>;
@@ -39,12 +56,12 @@ multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'MET
 
     if $create-cfg-dir {
         die "⟨$cfg-dir⟩ already exists" if $cfg-dir.e;
-        mkdir $cfg-dir and say "Created ⟨$cfg-dir⟩."
+        mkdir $cfg-dir and say BOLD "Created ⟨$cfg-dir⟩."
     }
 
     if $create {
-        die "File ⟨$meta6-file⟩ already exists, the --force needs to be with you." if $meta6-file.e && !$force;
-        die "To create a META6.json --name=<project-name-here> is required." unless $name;
+        die RED "File ⟨$meta6-file⟩ already exists, the --force needs to be with you." if $meta6-file.e && !$force;
+        die RED "To create a META6.json --name=<project-name-here> is required." unless $name;
 
         my $meta6 = META6.new(:$name, :$description, version => Version.new($version), perl-version => Version.new($perl), authors => [$author], :$auth,
                               source-url => "https://github.com/$github-user/{$base-dir}.git",
@@ -54,14 +71,14 @@ multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'MET
     }
 
     if $check {
-        my $meta6 = META6.new(file => $meta6-file) or die "Failed to process ⟨$meta6-file⟩.";
+        my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
         
         with $meta6<source-url> {
             if $meta6<source-url> ~~ /^ 'git://' / {
-                note „WARN: Schema git:// used in source-url. Use https:// to avoid logins and issues thanks to dependence on git.“;
+                note RED „WARN: Schema git:// used in source-url. Use https:// to avoid logins and issues thanks to dependence on git.“;
             }
             if !try-to-fetch-url($meta6<source-url>) {
-                note „WARN: Failed to reach $meta6<source-url>.“;
+                note RED „WARN: Failed to reach $meta6<source-url>.“;
             }
         }
     }
@@ -69,14 +86,14 @@ multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'MET
 
 multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-github, :$verbose) {
     my $name = $new-module;
-    die "To create a module --new-module=<Module::Name::Here> is required." unless $name;
+    die RED "To create a module --new-module=<Module::Name::Here> is required." unless $name;
     my $base-dir = 'perl6-' ~ $name.subst(:g, '::', '-').fc;
-    die "Directory ⟨$base-dir⟩ already exists, the --force needs to be with you." if $base-dir.IO.e && !$force;
-    say "Creating new module $name under ⟨$base-dir⟩.";
-    $base-dir.IO.mkdir or die "Cannot create ⟨$base-dir⟩: $!";
+    die RED "Directory ⟨$base-dir⟩ already exists, the --force needs to be with you." if $base-dir.IO.e && !$force;
+    say BOLD "Creating new module $name under ⟨$base-dir⟩.";
+    $base-dir.IO.mkdir or die RED "Cannot create ⟨$base-dir⟩: $!";
     for <lib t bin example> {
         my $dir = $base-dir ~ '/' ~ .Str;
-        $dir.IO.mkdir or die "Cannot create ⟨$dir⟩: $!";
+        $dir.IO.mkdir or die RED "Cannot create ⟨$dir⟩: $!";
     }
 
     create-readme($base-dir, $name);
@@ -96,19 +113,19 @@ sub git-create($base-dir) {
     my $timeout = Promise.at(now + 60);
 
     await Promise.anyof($p = $git.start, $timeout);
-    fail "⟨git init⟩ timed out." if $p.status == Broken;
+    fail RED "⟨git init⟩ timed out." if $p.status == Broken;
     
     $git = Proc::Async.new('git', '-C', $base-dir, 'add', 'META6.json', 'README.md', '.travis.yml', 't/meta.t');
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
-    fail "⟨git add⟩ timed out." if $p.status == Broken;
+    fail RED "⟨git add⟩ timed out." if $p.status == Broken;
     
     $git = Proc::Async.new('git', '-C', $base-dir, 'commit', 'META6.json', 'README.md', '.travis.yml', 't/meta.t', '-m', 'initial commit, add META6.json, README.md, .travis.yml, meta.t');
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
-    fail "⟨git commit⟩ timed out." if $p.status == Broken;
+    fail RED "⟨git commit⟩ timed out." if $p.status == Broken;
 }
 
 sub github-create($base-dir) {
@@ -119,16 +136,16 @@ sub github-create($base-dir) {
     $curl.stdout.tap: { $github-response ~= .Str };
     my $timeout = Promise.at(now + 60);
 
-    say "Creating github repo.";
+    say BOLD "Creating github repo.";
     await Promise.anyof($p = $curl.start, $timeout);
-    fail "⟨curl⟩ timed out." if $p.status == Broken;
+    fail RED "⟨curl⟩ timed out." if $p.status == Broken;
     
     given from-json($github-response) {
         when .<errors>:exists {
-            fail .<message>.subst(:g, '.', ''), ": ", .<errors>.[0].<message>.subst('name', $base-dir), '.';
+            fail RED .<message>.subst(:g, '.', ''), ": ", .<errors>.[0].<message>.subst('name', $base-dir), '.';
         }
         when .<full_name>:exists {
-            say 'GitHub project created at https://github.com/' ~ .<full_name> ~ '.';
+            say BOLD 'GitHub project created at https://github.com/' ~ .<full_name> ~ '.';
         }
     }
 }
@@ -141,15 +158,15 @@ sub git-push($base-dir, :$verbose) {
     my $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
-    fail "⟨git remote⟩ timed out." if $p.status == Broken;
+    fail RED "⟨git remote⟩ timed out." if $p.status == Broken;
     
-    say "Pushing repo to github.";
+    say BOLD "Pushing repo to github.";
     $git = Proc::Async.new('git', '-C', $base-dir, 'push', 'origin', 'master');
     $git.stdout.tap: { Nil } unless $verbose;
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
-    fail "⟨git push⟩ timed out." if $p.status == Broken;
+    fail RED "⟨git push⟩ timed out." if $p.status == Broken;
 }
 
 sub create-readme($base-dir, $name) {
