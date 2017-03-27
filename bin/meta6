@@ -211,3 +211,12 @@ sub create-travis-yml($base-dir) {
         - zef install .
     EOH
 }
+
+sub create-gitignore($base-dir) {
+    spurt("$base-dir/.travis.yml", Q:to<EOH>);
+    .precomp
+    *.swp
+    *.bak
+    *~
+    EOH
+}
