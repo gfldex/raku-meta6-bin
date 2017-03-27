@@ -94,6 +94,7 @@ multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-gith
     create-readme($base-dir, $name);
     create-meta-t($base-dir);
     create-travis-yml($base-dir);
+    create-gitignore($base-dir);
 
     MAIN(:create, :$name, :$base-dir, :$force);
     git-create($base-dir) unless $skip-git;
@@ -110,13 +111,13 @@ sub git-create($base-dir) {
     await Promise.anyof($p = $git.start, $timeout);
     fail RED "⟨git init⟩ timed out." if $p.status == Broken;
     
-    $git = Proc::Async.new('git', '-C', $base-dir, 'add', 'META6.json', 'README.md', '.travis.yml', 't/meta.t');
+    $git = Proc::Async.new('git', '-C', $base-dir, 'add', 'META6.json', 'README.md', '.travis.yml', '.gitignore', 't/meta.t');
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
     fail RED "⟨git add⟩ timed out." if $p.status == Broken;
     
-    $git = Proc::Async.new('git', '-C', $base-dir, 'commit', 'META6.json', 'README.md', '.travis.yml', 't/meta.t', '-m', 'initial commit, add META6.json, README.md, .travis.yml, meta.t');
+    $git = Proc::Async.new('git', '-C', $base-dir, 'commit', 'META6.json', 'README.md', '.travis.yml', '.gitignore', 't/meta.t', '-m', 'initial commit, add META6.json, README.md, .travis.yml, meta.t');
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
@@ -213,7 +214,7 @@ sub create-travis-yml($base-dir) {
 }
 
 sub create-gitignore($base-dir) {
-    spurt("$base-dir/.travis.yml", Q:to<EOH>);
+    spurt("$base-dir/.gitignore", Q:to<EOH>);
     .precomp
     *.swp
     *.bak
