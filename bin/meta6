@@ -82,6 +82,8 @@ multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-gith
     say BOLD "Creating new module $name under ⟨$base-dir⟩.";
     $base-dir.IO.mkdir or die RED "Cannot create ⟨$base-dir⟩: $!";
 
+    pre-create-hook($base-dir);
+
     for <lib t bin example> {
         my $dir = $base-dir ~ '/' ~ .Str;
         $dir.IO.mkdir or die RED "Cannot create ⟨$dir⟩: $!";
@@ -99,7 +101,12 @@ multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-gith
     MAIN(:create, :$name, :$base-dir, :$force);
     git-create($base-dir, @tracked-files) unless $skip-git;
     github-create($base-dir) unless $skip-git && $skip-github;
+    
+    post-create-hook($base-dir);
+
     git-push($base-dir, :$verbose) unless $skip-git && $skip-github;
+
+    post-push-hook($base-dir);
 }
 
 multi sub MAIN(:$create-cfg-dir, Bool :$force) {
@@ -109,6 +116,7 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
     mkdir "$cfg-dir/skeleton";
     mkdir "$cfg-dir/pre-create.d";
     mkdir "$cfg-dir/post-create.d";
+    mkdir "$cfg-dir/post-push.d";
 
     say BOLD "Created ⟨$cfg-dir⟩.";
 }
@@ -237,7 +245,7 @@ class X::Proc::Async::Timeout is Exception {
     has $.command;
     has $.seconds;
     method message {
-        "⟨$.command⟩ timed out after $.seconds seconds.";
+        RED "⟨$.command⟩ timed out after $.seconds seconds.";
     }
 }
 
@@ -267,4 +275,22 @@ multi sub copy-file($src is copy, $dst-dir is copy where *.IO.d) {
     try $dst.spurt: $src.slurp or die RED "Can not copy ⟨$src⟩ to ⟨$dst-dir⟩: $!";
 
     $dst
+}
+
+sub pre-create-hook($base-dir) {
+    for $cfg-dir.child('pre-create.d').dir.grep(!*.ends-with('~')).sort {
+        await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: timeout => 60;
+    }
+}
+
+sub post-create-hook($base-dir) {
+    for $cfg-dir.child('post-create.d').dir.grep(!*.ends-with('~')).sort {
+        await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: timeout => 60;
+    }
+}
+
+sub post-push-hook($base-dir) {
+    for $cfg-dir.child('post-push.d').dir.grep(!*.ends-with('~')).sort {
+        await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: timeout => 60;
+    }
 }

@@ -37,3 +37,7 @@ additional files to be copied into any new project. This is where you put your
 default `LICENSE` or alternate `.gitignore`.
 
 The config dir and its default subdirs are created with `--create-cfg-dir`.
+
+Any executable under `pre-create.d`, `post-create.d` and `post-push.d` are
+sorted and executed with a timeout of 60 seconds each. Files that end in `~`
+are filtered out.
