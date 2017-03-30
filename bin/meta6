@@ -38,7 +38,7 @@ sub try-to-fetch-url($_) {
     200 <= $response.?status < 400
 }
 
-multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'META6.json',
+multi sub MAIN(Bool :$check, Str :$meta6-file-name = 'META6.json',
          Bool :$create, Bool :$force,
          Str :$name, Str :$description = '',
          Str :$version = (v0.0.1).Str, Str :$perl = (v6.c).Str,
@@ -48,11 +48,6 @@ multi sub MAIN(Bool :$create-cfg-dir, Bool :$check, Str :$meta6-file-name = 'MET
          Bool :$verbose
 ) {
     my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
-
-    if $create-cfg-dir {
-        die "⟨$cfg-dir⟩ already exists" if $cfg-dir.e;
-        mkdir $cfg-dir and say BOLD "Created ⟨$cfg-dir⟩."
-    }
 
     if $create {
         die RED "File ⟨$meta6-file⟩ already exists, the --force needs to be with you." if $meta6-file.e && !$force;
@@ -95,14 +90,27 @@ multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-gith
     create-meta-t($base-dir);
     create-travis-yml($base-dir);
     create-gitignore($base-dir);
+    my @tracked-files = copy-skeleton-files($base-dir)».IO».basename;
+    @tracked-files.append: 'META6.json', 'README.md', '.travis.yml', '.gitignore', 't/meta.t';
 
     MAIN(:create, :$name, :$base-dir, :$force);
-    git-create($base-dir) unless $skip-git;
+    git-create($base-dir, @tracked-files) unless $skip-git;
     github-create($base-dir) unless $skip-git && $skip-github;
     git-push($base-dir, :$verbose) unless $skip-git && $skip-github;
 }
 
-sub git-create($base-dir) {
+multi sub MAIN(:$create-cfg-dir, Bool :$force) {
+    die RED "⟨$cfg-dir⟩ already exists" if $force ^^ $cfg-dir.e;
+    mkdir $cfg-dir;
+    
+    mkdir "$cfg-dir/skeleton";
+    mkdir "$cfg-dir/pre-create.d";
+    mkdir "$cfg-dir/post-create.d";
+
+    say BOLD "Created ⟨$cfg-dir⟩.";
+}
+
+sub git-create($base-dir, @tracked-files, :$verbose) {
     my Promise $p;
 
     my $git = Proc::Async.new('git', 'init', $base-dir);
@@ -111,13 +119,13 @@ sub git-create($base-dir) {
     await Promise.anyof($p = $git.start, $timeout);
     fail RED "⟨git init⟩ timed out." if $p.status == Broken;
     
-    $git = Proc::Async.new('git', '-C', $base-dir, 'add', 'META6.json', 'README.md', '.travis.yml', '.gitignore', 't/meta.t');
+    $git = Proc::Async.new('git', '-C', $base-dir, 'add', |@tracked-files);
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
     fail RED "⟨git add⟩ timed out." if $p.status == Broken;
     
-    $git = Proc::Async.new('git', '-C', $base-dir, 'commit', 'META6.json', 'README.md', '.travis.yml', '.gitignore', 't/meta.t', '-m', 'initial commit, add META6.json, README.md, .travis.yml, meta.t');
+    $git = Proc::Async.new('git', '-C', $base-dir, 'commit', |@tracked-files, '-m', 'initial commit, add ' ~ @tracked-files.join(', '));
     $timeout = Promise.at(now + 60);
     
     await Promise.anyof($p = $git.start, $timeout);
@@ -220,4 +228,40 @@ sub create-gitignore($base-dir) {
     *.bak
     *~
     EOH
+}
+
+class X::Proc::Async::Timeout is Exception {
+    has $.command;
+    has $.seconds;
+    method message {
+        "⟨$.command⟩ timed out after $.seconds seconds.";
+    }
+}
+
+class Proc::Async::Timeout is Proc::Async is export {
+    method start(Numeric :$timeout, |c --> Promise:D) {
+        state &parent-start-method = nextcallee;
+        start {
+            await my $outer-p = Promise.anyof(my $p = parent-start-method(self, |c), Promise.at(now + $timeout));
+            if $p.status != Kept {
+                self.kill;
+                fail X::Proc::Async::Timeout.new(command => self.path, seconds => $timeout);
+            }
+        }
+    }
+}
+
+sub copy-skeleton-files($base-dir) {
+    my @skeleton-files = $cfg-dir.IO.child('skeleton').dir;
+
+    @skeleton-files».&copy-file($base-dir)
+}
+
+multi sub copy-file($src is copy, $dst-dir is copy where *.IO.d) {
+    $src.=IO;
+    my $dst = $dst-dir.IO.child($src.basename);
+
+    $dst.spurt: $src.slurp;
+
+    $dst
 }

@@ -14,7 +14,7 @@ Module skeletons include basic directories, `META6.json`, `t/meta.t`,
 
     meta6 --create --name=<project-name-here> --force
     meta6 --check
-    meta6 --create-cfg-dir
+    meta6 --create-cfg-dir --force
     meta6 --new-module --name=<Module::Name::Here> --force --skip-git --skip-github
 
 # General Options
@@ -30,3 +30,10 @@ Module skeletons include basic directories, `META6.json`, `t/meta.t`,
     --author # defaults to user/name from ~/.gitconfig
     --auth # defaults to credentials/username from ~/.gitconfig
 
+# Config dir
+
+The config dir resides at `~/.meta6` and holds a folder called `skeleton` for
+additional files to be copied into any new project. This is where you put your
+default `LICENSE` or alternate `.gitignore`.
+
+The config dir and its default subdirs are created with `--create-cfg-dir`.
