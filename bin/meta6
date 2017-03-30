@@ -81,6 +81,7 @@ multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-gith
     die RED "Directory ⟨$base-dir⟩ already exists, the --force needs to be with you." if $base-dir.IO.e && !$force;
     say BOLD "Creating new module $name under ⟨$base-dir⟩.";
     $base-dir.IO.mkdir or die RED "Cannot create ⟨$base-dir⟩: $!";
+
     for <lib t bin example> {
         my $dir = $base-dir ~ '/' ~ .Str;
         $dir.IO.mkdir or die RED "Cannot create ⟨$dir⟩: $!";
@@ -90,7 +91,9 @@ multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-gith
     create-meta-t($base-dir);
     create-travis-yml($base-dir);
     create-gitignore($base-dir);
-    my @tracked-files = copy-skeleton-files($base-dir)».IO».basename;
+    my @tracked-files =
+    copy-skeleton-files($base-dir)».IO».basename;
+
     @tracked-files.append: 'META6.json', 'README.md', '.travis.yml', '.gitignore', 't/meta.t';
 
     MAIN(:create, :$name, :$base-dir, :$force);
@@ -261,7 +264,7 @@ multi sub copy-file($src is copy, $dst-dir is copy where *.IO.d) {
     $src.=IO;
     my $dst = $dst-dir.IO.child($src.basename);
 
-    $dst.spurt: $src.slurp;
+    try $dst.spurt: $src.slurp or die RED "Can not copy ⟨$src⟩ to ⟨$dst-dir⟩: $!";
 
     $dst
 }
