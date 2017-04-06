@@ -34,7 +34,7 @@ sub first-hit($basename) {
     @path».child($basename).grep(*.e & *.r).first
 }
 
-sub try-to-fetch-url($_) is export(:HELPER) {
+our sub try-to-fetch-url($_) is export(:HELPER) {
     my $response = HTTP::Client.new.head(.Str, :follow);
     CATCH { default { $response = Nil } }
     200 <= $response.?status < 400
@@ -64,8 +64,10 @@ multi sub MAIN(Bool :$check, Str :$meta6-file-name = 'META6.json',
         $meta6-file.spurt($meta6.to-json);
     }
 
+
     if $check {
         my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
+
         
         with $meta6<source-url> {
             if $meta6<source-url> ~~ /^ 'git://' / {
@@ -125,7 +127,7 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
     say BOLD "Created ⟨$cfg-dir⟩.";
 }
 
-sub git-create($base-dir, @tracked-files, :$verbose) is export(:GIT) {
+our sub git-create($base-dir, @tracked-files, :$verbose) is export(:GIT) {
     my Promise $p;
 
     my $git = Proc::Async.new('git', 'init', $base-dir);
@@ -147,7 +149,7 @@ sub git-create($base-dir, @tracked-files, :$verbose) is export(:GIT) {
     fail RED "⟨git commit⟩ timed out." if $p.status == Broken;
 }
 
-sub github-create($base-dir) is export(:GIT) {
+our sub github-create($base-dir) is export(:GIT) {
     temp $github-user = $github-token ?? $github-user ~ ':' ~ $github-token !! $github-user;
     my $curl = Proc::Async.new('curl', '--silent', '-u', $github-user, 'https://api.github.com/user/repos', '-d', '{"name":"' ~ $base-dir ~ '"}');
     my Promise $p;
@@ -169,7 +171,7 @@ sub github-create($base-dir) is export(:GIT) {
     }
 }
 
-sub git-push($base-dir, :$verbose) is export(:GIT) {
+our sub git-push($base-dir, :$verbose) is export(:GIT) {
     my Promise $p;
 
     my $git = Proc::Async.new('git', '-C', $base-dir, 'remote', 'add', 'origin', "https://github.com/$github-user/$base-dir");
@@ -188,7 +190,7 @@ sub git-push($base-dir, :$verbose) is export(:GIT) {
     fail RED "⟨git push⟩ timed out." if $p.status == Broken;
 }
 
-sub create-readme($base-dir, $name) is export(:CREATE) {
+our sub create-readme($base-dir, $name) is export(:CREATE) {
     spurt("$base-dir/README.md", qq:to<EOH>);
     # $name
     
@@ -211,7 +213,7 @@ sub create-readme($base-dir, $name) is export(:CREATE) {
     EOH
 }
 
-sub create-meta-t($base-dir) is export(:CREATE) {
+our sub create-meta-t($base-dir) is export(:CREATE) {
     spurt("$base-dir/t/meta.t", Q:to<EOH>);
     use v6;
     
@@ -225,7 +227,7 @@ sub create-meta-t($base-dir) is export(:CREATE) {
     EOH
 }
 
-sub create-travis-yml($base-dir) is export(:CREATE) {
+our sub create-travis-yml($base-dir) is export(:CREATE) {
     spurt("$base-dir/.travis.yml", Q:to<EOH>);
     language: perl6
     sudo: false
@@ -237,7 +239,7 @@ sub create-travis-yml($base-dir) is export(:CREATE) {
     EOH
 }
 
-sub create-gitignore($base-dir) is export(:CREATE) {
+our sub create-gitignore($base-dir) is export(:CREATE) {
     spurt("$base-dir/.gitignore", Q:to<EOH>);
     .precomp
     *.swp
@@ -267,13 +269,13 @@ class Proc::Async::Timeout is Proc::Async is export {
     }
 }
 
-sub copy-skeleton-files($base-dir) is export(:HELPER) {
+our sub copy-skeleton-files($base-dir) is export(:HELPER) {
     my @skeleton-files = $cfg-dir.IO.child('skeleton').dir;
 
     @skeleton-files».&copy-file($base-dir)
 }
 
-multi sub copy-file($src is copy, $dst-dir is copy where *.IO.d) is export(:HELPER) {
+our multi sub copy-file($src is copy, $dst-dir is copy where *.IO.d) is export(:HELPER) {
     $src.=IO;
     my $dst = $dst-dir.IO.child($src.basename);
 
@@ -282,19 +284,19 @@ multi sub copy-file($src is copy, $dst-dir is copy where *.IO.d) is export(:HELP
     $dst
 }
 
-sub pre-create-hook($base-dir) is export(:HOOK) {
+our sub pre-create-hook($base-dir) is export(:HOOK) {
     for $cfg-dir.child('pre-create.d').dir.grep(!*.ends-with('~')).sort {
         await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: timeout => 60;
     }
 }
 
-sub post-create-hook($base-dir) is export(:HOOK){
+our sub post-create-hook($base-dir) is export(:HOOK){
     for $cfg-dir.child('post-create.d').dir.grep(!*.ends-with('~')).sort {
         await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: timeout => 60;
     }
 }
 
-sub post-push-hook($base-dir) is export(:HOOK){
+our sub post-push-hook($base-dir) is export(:HOOK){
     for $cfg-dir.child('post-push.d').dir.grep(!*.ends-with('~')).sort {
         await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: timeout => 60;
     }
