@@ -17,6 +17,19 @@ Module skeletons include basic directories, `META6.json`, `t/meta.t`,
     meta6 --create-cfg-dir --force
     meta6 --new-module --name=<Module::Name::Here> --force --skip-git --skip-github
 
+## Use as a Module
+
+    use v6.c;
+
+    use META6::bin :HELPER;
+    
+    &META6::bin::try-to-fetch-url.wrap({
+        say "checking URL: ⟨$_⟩";
+        callsame;
+    });
+    
+    META6::bin::MAIN(:check);
+
 # General Options
 
     --meta6-file=<path-to-META6.json> # defaults to ./META6.json
@@ -29,6 +42,7 @@ Module skeletons include basic directories, `META6.json`, `t/meta.t`,
     --perl # defaults to 6.c
     --author # defaults to user/name from ~/.gitconfig
     --auth # defaults to credentials/username from ~/.gitconfig
+
 
 # Config dir
 
