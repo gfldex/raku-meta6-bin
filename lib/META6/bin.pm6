@@ -275,7 +275,7 @@ our sub copy-skeleton-files($base-dir) is export(:HELPER) {
     @skeleton-files».&copy-file($base-dir)
 }
 
-our multi sub copy-file($src is copy, $dst-dir is copy where *.IO.d) is export(:HELPER) {
+our sub copy-file($src is copy, $dst-dir is copy where *.IO.d) is export(:HELPER) {
     $src.=IO;
     my $dst = $dst-dir.IO.child($src.basename);
 
