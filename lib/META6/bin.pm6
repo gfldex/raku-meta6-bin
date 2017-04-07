@@ -77,6 +77,10 @@ multi sub MAIN(Bool :$check, Str :$meta6-file-name = 'META6.json',
                 note RED „WARN: Failed to reach $meta6<source-url>.“;
             }
         }
+
+        if $meta6-file.parent.child('t').child('meta.t').e {
+            note RED „WARN: meta.t found but missing Test::META module in "depends"“ unless 'Test::META' ∈ $meta6<depends>
+        }
     }
 }
 
