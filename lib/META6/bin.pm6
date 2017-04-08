@@ -19,7 +19,7 @@ my &RED = sub (*@s) {
 
 &BOLD = &RED = sub (Stringy $s) { $s } unless $*OUT.t;
 
-my @path = «%*ENV<HOME>/.meta6»».IO;
+my @path = "%*ENV<HOME>/.meta6"».IO;
 my $cfg-dir = %*ENV<HOME>.IO.child('.meta6');
 my $github-user = git-config<credential><username>;
 my $github-realname = git-config<user><name>;
@@ -31,8 +31,13 @@ if $cfg-dir.e & !$cfg-dir.d {
 }
 
 sub first-hit($basename) {
-    @path».child($basename).grep(*.e & *.r).first
+    @path».child($basename).grep({.e & .r}).first
 }
+
+my %cfg = read-cfg(first-hit('meta6.cfg'));
+
+my $timeout = %cfg<general><timeout>.Int // 60;
+my $git-timeout = %cfg<git><timeout>.Int // $timeout // 120;
 
 our sub try-to-fetch-url($_) is export(:HELPER) {
     my $response = HTTP::Client.new.head(.Str, :follow);
@@ -135,19 +140,19 @@ our sub git-create($base-dir, @tracked-files, :$verbose) is export(:GIT) {
     my Promise $p;
 
     my $git = Proc::Async.new('git', 'init', $base-dir);
-    my $timeout = Promise.at(now + 60);
+    my $timeout = Promise.at(now + $git-timeout);
 
     await Promise.anyof($p = $git.start, $timeout);
     fail RED "⟨git init⟩ timed out." if $p.status == Broken;
     
     $git = Proc::Async.new('git', '-C', $base-dir, 'add', |@tracked-files);
-    $timeout = Promise.at(now + 60);
+    $timeout = Promise.at(now + $git-timeout);
     
     await Promise.anyof($p = $git.start, $timeout);
     fail RED "⟨git add⟩ timed out." if $p.status == Broken;
     
     $git = Proc::Async.new('git', '-C', $base-dir, 'commit', |@tracked-files, '-m', 'initial commit, add ' ~ @tracked-files.join(', '));
-    $timeout = Promise.at(now + 60);
+    $timeout = Promise.at(now + $git-timeout);
     
     await Promise.anyof($p = $git.start, $timeout);
     fail RED "⟨git commit⟩ timed out." if $p.status == Broken;
@@ -159,7 +164,7 @@ our sub github-create($base-dir) is export(:GIT) {
     my Promise $p;
     my $github-response;
     $curl.stdout.tap: { $github-response ~= .Str };
-    my $timeout = Promise.at(now + 60);
+    my $timeout = Promise.at(now + $git-timeout);
 
     say BOLD "Creating github repo.";
     await Promise.anyof($p = $curl.start, $timeout);
@@ -177,10 +182,11 @@ our sub github-create($base-dir) is export(:GIT) {
 
 our sub git-push($base-dir, :$verbose) is export(:GIT) {
     my Promise $p;
+    my $protocol = %cfg<git><protocol>;
 
-    my $git = Proc::Async.new('git', '-C', $base-dir, 'remote', 'add', 'origin', "https://github.com/$github-user/$base-dir");
+    my $git = Proc::Async.new('git', '-C', $base-dir, 'remote', 'add', 'origin', "$protocol://github.com/$github-user/$base-dir");
     $git.stdout.tap: { Nil } unless $verbose;
-    my $timeout = Promise.at(now + 60);
+    my $timeout = Promise.at(now + $git-timeout);
     
     await Promise.anyof($p = $git.start, $timeout);
     fail RED "⟨git remote⟩ timed out." if $p.status == Broken;
@@ -188,7 +194,7 @@ our sub git-push($base-dir, :$verbose) is export(:GIT) {
     say BOLD "Pushing repo to github.";
     $git = Proc::Async.new('git', '-C', $base-dir, 'push', 'origin', 'master');
     $git.stdout.tap: { Nil } unless $verbose;
-    $timeout = Promise.at(now + 60);
+    $timeout = Promise.at(now + $git-timeout);
     
     await Promise.anyof($p = $git.start, $timeout);
     fail RED "⟨git push⟩ timed out." if $p.status == Broken;
@@ -290,19 +296,34 @@ our sub copy-file($src is copy, $dst-dir is copy where *.IO.d) is export(:HELPER
 
 our sub pre-create-hook($base-dir) is export(:HOOK) {
     for $cfg-dir.child('pre-create.d').dir.grep(!*.ends-with('~')).sort {
-        await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: timeout => 60;
+        await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: :$timeout;
     }
 }
 
-our sub post-create-hook($base-dir) is export(:HOOK){
+our sub post-create-hook($base-dir) is export(:HOOK) {
     for $cfg-dir.child('post-create.d').dir.grep(!*.ends-with('~')).sort {
-        await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: timeout => 60;
+        await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: :$timeout;
     }
 }
 
-our sub post-push-hook($base-dir) is export(:HOOK){
+our sub post-push-hook($base-dir) is export(:HOOK) {
     for $cfg-dir.child('post-push.d').dir.grep(!*.ends-with('~')).sort {
-        await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: timeout => 60;
+        await Proc::Async::Timeout.new(.Str, $base-dir.IO.absolute).start: :$timeout;
     }
 }
 
+our sub read-cfg($path) is export(:HELPER) {
+    use Slippy::Semilist;
+
+    return unless $path.IO.e;
+
+    my %h;
+    slurp($path).lines\
+        ».chomp\
+        .grep(!*.starts-with('#'))\
+        .grep(*.chars)\
+        ».split(/\s* '=' \s*/)\
+        .flat.map(-> $k, $v { %h{||$k.split('.').cache} = $v });
+    
+    %h
+}
