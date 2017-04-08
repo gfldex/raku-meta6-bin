@@ -50,7 +50,8 @@ The config dir resides at `~/.meta6` and holds a folder called `skeleton` for
 additional files to be copied into any new project. This is where you put your
 default `LICENSE` or alternate `.gitignore`.
 
-The config dir and its default subdirs are created with `--create-cfg-dir`.
+The config dir, a default meta6.cfg and its default subdirs are created with
+`--create-cfg-dir`.
 
 Any executable under `pre-create.d`, `post-create.d` and `post-push.d` are
 sorted and executed with a timeout of 60 seconds each. Files that end in `~`
