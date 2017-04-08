@@ -133,6 +133,15 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
     mkdir "$cfg-dir/post-create.d";
     mkdir "$cfg-dir/post-push.d";
 
+    spurt("$cfg-dir/.meta6.cfg", qq:to<EOH>);
+    # META6::bin config file
+    
+    general.timeout = 60
+    git.timeout = 120
+    git.protocol = https
+    
+    EOH
+
     say BOLD "Created ⟨$cfg-dir⟩.";
 }
 
