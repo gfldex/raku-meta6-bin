@@ -176,6 +176,13 @@ multi sub MAIN(:$fork-module, :$force) {
     my $repo-url = github-fork($owner, $repo);
     my $base-dir = git-clone($repo-url);
     note BOLD "Cloned repo ready in ⟨$base-dir⟩.";
+    if "$base-dir/META6.json".IO.e && !"$base-dir/t/meta.t".IO.e {
+        note BOLD "No t/meta.t found.";
+        create-meta-t($base-dir);
+        MAIN(add-dep => 'Test::META', :$base-dir);
+        git-add('t/meta.t', :$base-dir);
+        git-commit(['t/meta.t', 'META6.json'], 'add t/meta.t', :$base-dir);
+    }
 }
 
 multi sub MAIN(Str :$add-dep, Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json') {
@@ -277,10 +284,31 @@ our sub git-clone($repo-url, :$verbose) is export(:GIT) {
     say BOLD "Cloning repo ⟨$repo-url⟩ to FS.";
     my $git = Proc::Async::Timeout.new('git', 'clone', $repo-url);
     $git.stderr.tap: { $git-response ~= .Str };
-    # Cloning into 'perl6-proc-async-timeout'...
     
     await $git.start: :$timeout;
     $git-response.lines.grep(*.starts-with('Cloning into')).first.split("'")[1]
+}
+
+our sub git-add($file-path, :$base-dir, :$verbose) is export(:GIT) {
+    my Str $git-response;
+
+    say BOLD "Adding ⟨$base-dir/$file-path⟩ to local git repo.";
+    my $git = Proc::Async::Timeout.new('git', 'add', '-v', $file-path);
+    $git.stdout.tap: { $git-response ~= .Str };
+    
+    await $git.start(timeout => $git-timeout, cwd => $*CWD.child($base-dir));
+    $git-response.lines.grep(*.starts-with('add ')).first.split("'")[1]
+}
+
+our sub git-commit(@files, $message, :$base-dir, :$verbose) is export(:GIT) {
+    my Str $git-response;
+
+    my $display-name = ('⟨' ~ $base-dir «~« '/' «~« @files »~» '⟩').join(', ');
+    say BOLD "Commiting $display-name to local git repo.";
+    my $git = Proc::Async::Timeout.new('git', 'commit', '-m', $message, |@files);
+    $git.stdout.tap: { $git-response ~= .Str };
+    
+    await $git.start(timeout => $git-timeout, cwd => $*CWD.child($base-dir));
 }
 
 our sub create-readme($base-dir, $name) is export(:CREATE) {
