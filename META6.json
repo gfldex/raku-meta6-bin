@@ -14,7 +14,7 @@
   "build-depends": [
     
   ],
-  "auth": null,
+  "auth": "github:gfldex",
   "excludes": {
     
   },
