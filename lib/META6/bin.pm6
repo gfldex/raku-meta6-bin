@@ -169,13 +169,20 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
 multi sub MAIN(:$fork-module, :$force) {
     my @ecosystem = fetch-ecosystem;
     # dd @ecosystem».<source-url support>;
-    my $meta6 = @ecosystem.grep( *.<name> eq $clone-module )[0];
+    my $meta6 = @ecosystem.grep( *.<name> eq $fork-module )[0];
     my $module-url = $meta6<source-url> // $meta6<support><source>;
     my ($owner, $repo) = $module-url.split('/')[3,4];
     $repo.subst-mutate(/'.git'$/, '');
     my $repo-url = github-fork($owner, $repo);
     my $base-dir = git-clone($repo-url);
     note BOLD "Cloned repo ready in ⟨$base-dir⟩.";
+}
+
+mutli sub MAIN(:$add-dep) {
+    my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
+    my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
+
+    dd $meta6<depends>;
 }
 
 our sub git-create($base-dir, @tracked-files, :$verbose) is export(:GIT) {
