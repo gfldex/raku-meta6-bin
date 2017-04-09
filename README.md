@@ -78,6 +78,7 @@ sorted and executed with a timeout of 60 seconds each. Files that end in `~`
 are filtered out.
 
 The config directory can hold a `github-token.txt` file that is used to help
-`curl` to connect to github. The token needs the scopes `repo`,
-`user/read:user` and `user/email`. Please note that `git` itself can handle a
-`~/.netrc`-file and github will accept a token instead of a password.
+`curl` to connect to github. The [token](https://github.com/settings/tokens)
+needs the scopes `repo`, `user/read:user` and `user/email`. Please note that
+`git` itself can handle a `~/.netrc`-file and github will accept a token
+instead of a password.
