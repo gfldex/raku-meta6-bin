@@ -7,6 +7,27 @@ use JSON::Tiny;
 
 unit module META6::bin;
 
+class X::Proc::Async::Timeout is Exception {
+    has $.command;
+    has $.seconds;
+    method message {
+        RED "⟨$.command⟩ timed out after $.seconds seconds.";
+    }
+}
+
+class Proc::Async::Timeout is Proc::Async is export {
+    method start(Numeric :$timeout, |c --> Promise:D) {
+        state &parent-start-method = nextcallee;
+        start {
+            await my $outer-p = Promise.anyof(my $p = parent-start-method(self, |c), Promise.at(now + $timeout));
+            if $p.status != Kept {
+                self.kill(signal => Signal::SIGKILL);
+                fail X::Proc::Async::Timeout.new(command => self.path, seconds => $timeout);
+            }
+        }
+    }
+}
+
 # enum ANSI(reset => 0, bold => 1, underline => 2, inverse => 7, black => 30, red => 31, green => 32, yellow => 33, blue => 34, magenta => 35, cyan => 36, white => 37, default => 39, on_black => 40, on_red => 41, on_green   => 42, on_yellow  => 43, on_blue => 44, on_magenta => 45, on_cyan    => 46, on_white   => 47, on_default => 49);
 
 my &BOLD = sub (*@s) {
@@ -145,6 +166,18 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
     say BOLD "Created ⟨$cfg-dir⟩.";
 }
 
+multi sub MAIN(:$fork-module, :$force) {
+    my @ecosystem = fetch-ecosystem;
+    # dd @ecosystem».<source-url support>;
+    my $meta6 = @ecosystem.grep( *.<name> eq $clone-module )[0];
+    my $module-url = $meta6<source-url> // $meta6<support><source>;
+    my ($owner, $repo) = $module-url.split('/')[3,4];
+    $repo.subst-mutate(/'.git'$/, '');
+    my $repo-url = github-fork($owner, $repo);
+    my $base-dir = git-clone($repo-url);
+    note BOLD "Cloned repo ready in ⟨$base-dir⟩.";
+}
+
 our sub git-create($base-dir, @tracked-files, :$verbose) is export(:GIT) {
     my Promise $p;
 
@@ -189,6 +222,26 @@ our sub github-create($base-dir) is export(:GIT) {
     }
 }
 
+our sub github-fork($owner, $repo) is export(:GIT) {
+    temp $github-user = $github-token ?? $github-user ~ ':' ~ $github-token !! $github-user;
+    my $curl = Proc::Async::Timeout.new('curl', '--silent', '-u', $github-user, '-X', 'POST', „https://api.github.com/repos/$owner/$repo/forks“);
+    my $github-response;
+    $curl.stdout.tap: { $github-response ~= .Str };
+
+    say BOLD "Forking github repo.";
+    await $curl.start: :$timeout;
+    
+    given from-json($github-response) {
+        when .<message>:exists {
+            fail RED .<message>;
+        }
+        when .<full_name>:exists {
+            say BOLD 'GitHub project forked at https://github.com/' ~ .<full_name> ~ '.';
+            return .<html_url>;
+        }
+    }
+}
+
 our sub git-push($base-dir, :$verbose) is export(:GIT) {
     my Promise $p;
     my $protocol = %cfg<git><protocol>;
@@ -207,6 +260,19 @@ our sub git-push($base-dir, :$verbose) is export(:GIT) {
     
     await Promise.anyof($p = $git.start, $timeout);
     fail RED "⟨git push⟩ timed out." if $p.status == Broken;
+}
+
+our sub git-clone($repo-url, :$verbose) is export(:GIT) {
+    my $protocol = %cfg<git><protocol>;
+    my Str $git-response;
+
+    say BOLD "Cloning repo ⟨$repo-url⟩ to FS.";
+    my $git = Proc::Async::Timeout.new('git', 'clone', $repo-url);
+    $git.stderr.tap: { $git-response ~= .Str };
+    # Cloning into 'perl6-proc-async-timeout'...
+    
+    await $git.start: :$timeout;
+    $git-response.lines.grep(*.starts-with('Cloning into')).first.split("'")[1]
 }
 
 our sub create-readme($base-dir, $name) is export(:CREATE) {
@@ -267,27 +333,6 @@ our sub create-gitignore($base-dir) is export(:CREATE) {
     EOH
 }
 
-class X::Proc::Async::Timeout is Exception {
-    has $.command;
-    has $.seconds;
-    method message {
-        RED "⟨$.command⟩ timed out after $.seconds seconds.";
-    }
-}
-
-class Proc::Async::Timeout is Proc::Async is export {
-    method start(Numeric :$timeout, |c --> Promise:D) {
-        state &parent-start-method = nextcallee;
-        start {
-            await my $outer-p = Promise.anyof(my $p = parent-start-method(self, |c), Promise.at(now + $timeout));
-            if $p.status != Kept {
-                self.kill(signal => Signal::SIGKILL);
-                fail X::Proc::Async::Timeout.new(command => self.path, seconds => $timeout);
-            }
-        }
-    }
-}
-
 our sub copy-skeleton-files($base-dir) is export(:HELPER) {
     my @skeleton-files = $cfg-dir.IO.child('skeleton').dir;
 
@@ -335,4 +380,18 @@ our sub read-cfg($path) is export(:HELPER) {
         .flat.map(-> $k, $v { %h{||$k.split('.').cache} = $v });
     
     %h
+}
+
+our sub fetch-ecosystem is export(:HELPER) {
+    my $curl = Proc::Async.new('curl', '--silent', 'http://ecosystem-api.p6c.org/projects.json');
+    my Promise $p;
+    my $ecosystem-response;
+    $curl.stdout.tap: { $ecosystem-response ~= .Str };
+
+    say BOLD "Fetching module list.";
+    await Promise.anyof($p = $curl.start, Promise.at(now + $timeout));
+    fail RED "⟨curl⟩ timed out." if $p.status == Broken;
+    
+    say BOLD "Parsing module list.";
+    from-json($ecosystem-response)
 }
