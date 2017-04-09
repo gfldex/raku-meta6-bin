@@ -47,7 +47,7 @@ Module skeletons include basic directories, `META6.json`, `t/meta.t`,
 
 # Fork Module Options
 
-    --add-dep=<Module::Name::Here> # module name as to be found in the ecosystem
+    --fork-module=<Module::Name::Here> # module name as to be found in the ecosystem
 
 This will seach a module by name in the ecosystem. If it's a github repo that
 repo will be forked and cloned to the local FS. If there is a `META6.info` but
