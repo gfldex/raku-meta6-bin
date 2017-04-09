@@ -178,12 +178,13 @@ multi sub MAIN(:$fork-module, :$force) {
     note BOLD "Cloned repo ready in ⟨$base-dir⟩.";
 }
 
-# mutli sub MAIN(:$add-dep, Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json') {
-#     my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
-#     my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
-# 
-#     dd $meta6<depends>;
-# }
+multi sub MAIN(Str :$add-dep, Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json') {
+   my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
+   my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
+
+   $meta6<depends>.push($add-dep);
+   $meta6-file.spurt($meta6.to-json);
+}
 
 our sub git-create($base-dir, @tracked-files, :$verbose) is export(:GIT) {
     my Promise $p;

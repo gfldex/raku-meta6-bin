@@ -17,6 +17,7 @@ Module skeletons include basic directories, `META6.json`, `t/meta.t`,
     meta6 --create-cfg-dir --force
     meta6 --new-module --name=<Module::Name::Here> --force --skip-git --skip-github
     meta6 --fork-module=<Module::Name::Here>
+    meta6 --add-dep=<Module::Name::Here>
 
 ## Use as a Module
 
