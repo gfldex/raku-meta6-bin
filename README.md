@@ -18,6 +18,7 @@ Module skeletons include basic directories, `META6.json`, `t/meta.t`,
     meta6 --new-module --name=<Module::Name::Here> --force --skip-git --skip-github
     meta6 --fork-module=<Module::Name::Here>
     meta6 --add-dep=<Module::Name::Here>
+    meta6 --pull-request
 
 ## Use as a Module
 
@@ -53,6 +54,15 @@ This will seach a module by name in the ecosystem. If it's a github repo that
 repo will be forked and cloned to the local FS. If there is a `META6.info` but
 no `t/meta.t`, the file and its dependancy will be added and commited to the
 local git repo.
+
+# Pull Request Options
+
+    --pull-request
+    --title=`git log|head 1` # defaults to last commit message
+    --message=''
+    --head=master # branch in your fork
+    --base=master # branch in upstream repo
+    --repo-name # defaults to repo name provided in META6.info
 
 # Config dir
 

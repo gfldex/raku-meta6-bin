@@ -170,7 +170,7 @@ multi sub MAIN(:$fork-module, :$force) {
     my @ecosystem = fetch-ecosystem;
     # dd @ecosystem».<source-url support>;
     my $meta6 = @ecosystem.grep( *.<name> eq $fork-module )[0];
-    my $module-url = $meta6<source-url> // $meta6<support><source>;
+    my $module-url = $meta6<source-url> // $meta6<support>.source;
     my ($owner, $repo) = $module-url.split('/')[3,4];
     $repo.subst-mutate(/'.git'$/, '');
     my $repo-url = github-fork($owner, $repo);
@@ -194,6 +194,20 @@ multi sub MAIN(Str :$add-dep, Str :$base-dir = '.', Str :$meta6-file-name = 'MET
 
    $meta6<depends>.push($add-dep);
    $meta6-file.spurt($meta6.to-json);
+}
+
+multi sub MAIN(Bool :pr(:$pull-request), Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json',
+               Str :$title is copy, Str :$message = '', Str :$head = 'master', Str :$base = 'master', Str :$repo-name
+) {
+    $title //= git-log(:$base-dir).first;
+    my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
+    my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
+    my $github-url = $meta6<source-url> // $meta6<support>.source;
+    my $repo = $repo-name // $github-url.split('/')[4].subst(/'.git'$/, '');
+
+    my ($parent-owner, $parent) = github-get-repo($github-user, $repo)<parent><full_name>.split('/');
+
+    github-pull-request($parent-owner, $parent, $title, $message, :head("$github-user:$head"), :$base);
 }
 
 our sub git-create($base-dir, @tracked-files, :$verbose) is export(:GIT) {
@@ -260,6 +274,48 @@ our sub github-fork($owner, $repo) is export(:GIT) {
     }
 }
 
+our sub github-get-repo($owner, $repo) is export(:GIT) {
+    temp $github-user = $github-token ?? $github-user ~ ':' ~ $github-token !! $github-user;
+    my $curl = Proc::Async::Timeout.new('curl', '--silent', '-u', $github-user, '-X', 'GET', „https://api.github.com/repos/$owner/$repo“);
+    my $github-response;
+    $curl.stdout.tap: { $github-response ~= .Str };
+
+    await $curl.start: :$timeout;
+    
+    given from-json($github-response) {
+        when .<message>:exists {
+            fail RED .<message>;
+        }
+        when .<full_name>:exists {
+            return .item;
+        }
+    }
+}
+
+
+our sub github-pull-request($owner, $repo, $title, $body = '', :$head = 'master', :$base = 'master') is export(:GIT) {
+    temp $github-user = $github-token ?? $github-user ~ ':' ~ $github-token !! $github-user;
+    say ['curl', '--silent', '--user', $github-user, '--request', 'POST', '--data', to-json({ title => $title, body => $body, head => $head, base => $base}), „https://api.github.com/repos/$owner/$repo/pulls“];
+    my $curl = Proc::Async::Timeout.new('curl', '--silent', '--user', $github-user, '--request', 'POST', '--data', to-json({ title => $title, body => $body, head => $head, base => $base}), „https://api.github.com/repos/$owner/$repo/pulls“);
+    my $github-response;
+    $curl.stdout.tap: { $github-response ~= .Str };
+
+    say BOLD "Creating pull request.";
+    await $curl.start: :$timeout;
+
+    dd $github-response;
+    
+    given from-json($github-response) {
+        when .<message>:exists {
+            fail RED .<message>;
+        }
+        when .<full_name>:exists {
+            say BOLD 'GitHub project forked at https://github.com/' ~ .<full_name> ~ '.';
+            return .<html_url>;
+        }
+    }
+}
+
 our sub git-push($base-dir, :$verbose) is export(:GIT) {
     my Promise $p;
     my $protocol = %cfg<git><protocol>;
@@ -312,6 +368,17 @@ our sub git-commit(@files, $message, :$base-dir, :$verbose) is export(:GIT) {
     $git.stdout.tap: { $git-response ~= .Str };
     
     await $git.start(timeout => $git-timeout, cwd => $*CWD.child($base-dir));
+}
+
+our sub git-log(:$base-dir) {
+    my Str $git-response;
+
+    my $git = Proc::Async::Timeout.new('git', 'log', '--pretty=oneline');
+    $git.stdout.tap: { $git-response ~= .Str };
+    
+    await $git.start(timeout => $git-timeout, cwd => $*CWD.child($base-dir));
+    
+    $git-response.lines».substr(41)
 }
 
 our sub create-readme($base-dir, $name) is export(:CREATE) {
