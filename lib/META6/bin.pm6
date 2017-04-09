@@ -176,6 +176,7 @@ multi sub MAIN(:$fork-module, :$force) {
     my $repo-url = github-fork($owner, $repo);
     my $base-dir = git-clone($repo-url);
     note BOLD "Cloned repo ready in ⟨$base-dir⟩.";
+    note RED "WARN: no META6.json found" unless "$base-dir/META6.json".IO.e;
     if "$base-dir/META6.json".IO.e && !"$base-dir/t/meta.t".IO.e {
         note BOLD "No t/meta.t found.";
         create-meta-t($base-dir);
