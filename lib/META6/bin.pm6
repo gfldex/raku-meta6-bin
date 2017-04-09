@@ -190,6 +190,8 @@ multi sub MAIN(Str :$add-dep, Str :$base-dir = '.', Str :$meta6-file-name = 'MET
    my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
    my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
 
+   (note "Dependency to $add-dep already in META6.json."; return) if $add-dep ∈ $meta6<depends>;
+
    $meta6<depends>.push($add-dep);
    $meta6-file.spurt($meta6.to-json);
 }
