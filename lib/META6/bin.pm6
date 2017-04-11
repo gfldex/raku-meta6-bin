@@ -295,7 +295,6 @@ our sub github-get-repo($owner, $repo) is export(:GIT) {
 
 our sub github-pull-request($owner, $repo, $title, $body = '', :$head = 'master', :$base = 'master') is export(:GIT) {
     temp $github-user = $github-token ?? $github-user ~ ':' ~ $github-token !! $github-user;
-    say ['curl', '--silent', '--user', $github-user, '--request', 'POST', '--data', to-json({ title => $title, body => $body, head => $head, base => $base}), „https://api.github.com/repos/$owner/$repo/pulls“];
     my $curl = Proc::Async::Timeout.new('curl', '--silent', '--user', $github-user, '--request', 'POST', '--data', to-json({ title => $title, body => $body, head => $head, base => $base}), „https://api.github.com/repos/$owner/$repo/pulls“);
     my $github-response;
     $curl.stdout.tap: { $github-response ~= .Str };
@@ -303,8 +302,6 @@ our sub github-pull-request($owner, $repo, $title, $body = '', :$head = 'master'
     say BOLD "Creating pull request.";
     await $curl.start: :$timeout;
 
-    dd $github-response;
-    
     given from-json($github-response) {
         when .<message>:exists {
             fail RED .<message>;
