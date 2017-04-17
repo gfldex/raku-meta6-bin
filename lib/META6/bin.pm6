@@ -200,6 +200,7 @@ multi sub MAIN(Bool :pr(:$pull-request), Str :$base-dir = '.', Str :$meta6-file-
 ) {
     $title //= git-log(:$base-dir).first;
     my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
+    die RED "Can not find ⟨$meta6-file⟩." unless $meta6-file.e;
     my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
     my $github-url = $meta6<source-url> // $meta6<support>.source;
     my $repo = $repo-name // $github-url.split('/')[4].subst(/'.git'$/, '');
