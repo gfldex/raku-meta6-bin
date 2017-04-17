@@ -40,12 +40,12 @@ my &RED = sub (*@s) {
 
 &BOLD = &RED = sub (Stringy $s) { $s } unless $*OUT.t;
 
-my @path = "%*ENV<HOME>/.meta6"».IO;
-my $cfg-dir = %*ENV<HOME>.IO.child('.meta6');
+my $cfg-dir = $*HOME.child('.meta6');
+my @path = $cfg-dir;
 my $github-user = git-config<credential><username>;
 my $github-realname = git-config<user><name>;
 my $github-email = git-config<user><email>;
-my $github-token = $cfg-dir.?child('github-token.txt').?slurp.chomp // '';
+my $github-token = chomp $cfg-dir.child('github-token.txt').slurp // '';
 
 if $cfg-dir.e & !$cfg-dir.d {
     note "WARN: ⟨$cfg-dir⟩ is not a directory.";
