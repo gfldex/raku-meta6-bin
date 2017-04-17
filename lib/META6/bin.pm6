@@ -38,7 +38,11 @@ my &RED = sub (*@s) {
     "\e[31m{@s.join('')}\e[0m"
 }
 
-&BOLD = &RED = sub (Stringy $s) { $s } unless $*OUT.t;
+my &RESET = sub (*@s) {
+    "\e[0m{@s.join('')}\e[0m"
+}
+
+&BOLD = &RED = &RESET = sub (Stringy $s) { $s } unless $*OUT.t;
 
 my @path = "%*ENV<HOME>/.meta6"».IO;
 my $cfg-dir = %*ENV<HOME>.IO.child('.meta6');
@@ -304,7 +308,7 @@ our sub github-pull-request($owner, $repo, $title, $body = '', :$head = 'master'
 
     given from-json($github-response) {
         when .<message>:exists {
-            fail RED .<message>;
+            fail RED .<message> ~ RESET ~ ' (You may have forgot to push.)';
         }
         when .<html_url>:exists {
             say BOLD 'Pull request created at ' ~ .<html_url> ~ '.';
