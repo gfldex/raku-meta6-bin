@@ -305,8 +305,8 @@ our sub github-pull-request($owner, $repo, $title, $body = '', :$head = 'master'
         when .<message>:exists {
             fail RED .<message>;
         }
-        when .<full_name>:exists {
-            say BOLD 'Pull request created at https://github.com/' ~ .<html_url> ~ '.';
+        when .<html_url>:exists {
+            say BOLD 'Pull request created at ' ~ .<html_url> ~ '.';
             return .<html_url>;
         }
     }
