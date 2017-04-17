@@ -468,7 +468,9 @@ our sub post-push-hook($base-dir) is export(:HOOK) {
     }
 }
 
-our sub read-cfg($path) is export(:HELPER) {
+our proto sub read-cfg(|) is export(:HELPER) {*}
+
+multi sub read-cfg(Str:D $path) {
     use Slippy::Semilist;
 
     return unless $path.IO.e;
@@ -480,6 +482,15 @@ our sub read-cfg($path) is export(:HELPER) {
         .grep(*.chars)\
         ».split(/\s* '=' \s*/)\
         .flat.map(-> $k, $v { %h{||$k.split('.').cache} = $v });
+    
+    %h
+}
+
+multi sub read-cfg(Mu:U $path) {
+    my %h;
+    %h<general><timeout> = 60;
+    %h<git><timeout> = 60;
+    %h<git><protocol> = 'https';
     
     %h
 }
