@@ -45,7 +45,7 @@ my $cfg-dir = %*ENV<HOME>.IO.child('.meta6');
 my $github-user = git-config<credential><username>;
 my $github-realname = git-config<user><name>;
 my $github-email = git-config<user><email>;
-my $github-token = ($cfg-dir.?child('github-token.txt').slurp // '').chomp;
+my $github-token = (try $cfg-dir.child('github-token.txt').slurp.chomp) // '';
 
 if $cfg-dir.e & !$cfg-dir.d {
     note "WARN: ⟨$cfg-dir⟩ is not a directory.";
@@ -57,8 +57,8 @@ sub first-hit($basename) {
 
 my %cfg = read-cfg(first-hit('meta6.cfg'));
 
-my $timeout = %cfg<general><timeout>.Int // 60;
-my $git-timeout = %cfg<git><timeout>.Int // $timeout // 120;
+my $timeout = %cfg<general><timeout>.?Int // 60;
+my $git-timeout = %cfg<git><timeout>.?Int // $timeout // 120;
 
 our sub try-to-fetch-url($_) is export(:HELPER) {
     my $response = HTTP::Client.new.head(.Str, :follow);
@@ -471,7 +471,7 @@ our sub post-push-hook($base-dir) is export(:HOOK) {
 our sub read-cfg($path) is export(:HELPER) {
     use Slippy::Semilist;
 
-    return unless $path.IO.e;
+    return () unless $path and $path.IO.e;
 
     my %h;
     slurp($path).lines\
