@@ -307,7 +307,7 @@ our sub github-pull-request($owner, $repo, $title, $body = '', :$head = 'master'
             fail RED .<message>;
         }
         when .<full_name>:exists {
-            say BOLD 'GitHub project forked at https://github.com/' ~ .<full_name> ~ '.';
+            say BOLD 'Pull request created at https://github.com/' ~ .<html_url> ~ '.';
             return .<html_url>;
         }
     }
