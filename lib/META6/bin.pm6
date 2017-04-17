@@ -52,7 +52,7 @@ if $cfg-dir.e & !$cfg-dir.d {
 }
 
 sub first-hit($basename) {
-    @path».child($basename).grep({.e & .r}).first
+    try @path».child($basename).grep({.e & .r}).first
 }
 
 my %cfg = read-cfg(first-hit('meta6.cfg'));
@@ -168,7 +168,7 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
 
 multi sub MAIN(:$fork-module, :$force) {
     my @ecosystem = fetch-ecosystem;
-    my $meta6 = @ecosystem.grep( *.<name> eq $fork-module )[0];
+    my $meta6 = @ecosystem.grep(*.<name> eq $fork-module)[0];
     my $module-url = $meta6<source-url> // $meta6<support>.source;
     my ($owner, $repo) = $module-url.split('/')[3,4];
     $repo.subst-mutate(/'.git'$/, '');
@@ -506,5 +506,5 @@ our sub fetch-ecosystem is export(:HELPER) {
     fail RED "⟨curl⟩ timed out." if $p.status == Broken;
     
     say BOLD "Parsing module list.";
-    from-json($ecosystem-response)
+    from-json($ecosystem-response).flat
 }
