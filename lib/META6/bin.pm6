@@ -470,7 +470,7 @@ our sub post-push-hook($base-dir) is export(:HOOK) {
 
 our proto sub read-cfg(|) is export(:HELPER) {*}
 
-multi sub read-cfg(Str:D $path) {
+multi sub read-cfg(IO::Path:D $path) {
     use Slippy::Semilist;
 
     return unless $path.IO.e;
