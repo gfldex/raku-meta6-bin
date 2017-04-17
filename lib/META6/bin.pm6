@@ -168,7 +168,6 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
 
 multi sub MAIN(:$fork-module, :$force) {
     my @ecosystem = fetch-ecosystem;
-    # dd @ecosystem».<source-url support>;
     my $meta6 = @ecosystem.grep( *.<name> eq $fork-module )[0];
     my $module-url = $meta6<source-url> // $meta6<support>.source;
     my ($owner, $repo) = $module-url.split('/')[3,4];
