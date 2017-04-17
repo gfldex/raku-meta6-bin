@@ -57,8 +57,8 @@ sub first-hit($basename) {
 
 my %cfg = read-cfg(first-hit('meta6.cfg'));
 
-my $timeout = %cfg<general><timeout>.Int // 60;
-my $git-timeout = %cfg<git><timeout>.Int // $timeout // 120;
+my $timeout = %cfg<general><timeout>.?Int // 60;
+my $git-timeout = %cfg<git><timeout>.?Int // $timeout // 120;
 
 our sub try-to-fetch-url($_) is export(:HELPER) {
     my $response = HTTP::Client.new.head(.Str, :follow);
@@ -473,7 +473,7 @@ our proto sub read-cfg(|) is export(:HELPER) {*}
 multi sub read-cfg(Str:D $path) {
     use Slippy::Semilist;
 
-    return unless $path.IO.e;
+    return () unless $path and $path.IO.e;
 
     my %h;
     slurp($path).lines\
