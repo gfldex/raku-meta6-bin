@@ -45,7 +45,7 @@ my $cfg-dir = %*ENV<HOME>.IO.child('.meta6');
 my $github-user = git-config<credential><username>;
 my $github-realname = git-config<user><name>;
 my $github-email = git-config<user><email>;
-my $github-token = $cfg-dir.?child('github-token.txt').?slurp.chomp // '';
+my $github-token = ($cfg-dir.?child('github-token.txt').slurp // '').chomp;
 
 if $cfg-dir.e & !$cfg-dir.d {
     note "WARN: ⟨$cfg-dir⟩ is not a directory.";
