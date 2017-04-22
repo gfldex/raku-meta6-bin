@@ -215,7 +215,7 @@ multi sub MAIN(Str :$set-license, Str :$base-dir = '.', Str :$meta6-file-name = 
    my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
    my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
 
-   (note BOLD "License already set to $set-license in META6.json."; return) if $set-license eq $meta6<license>;
+   (note BOLD "License already set to $set-license in META6.json."; return) if $meta6<license> && $set-license eq $meta6<license>;
 
    $meta6<license> = $set-license;
    $meta6-file.spurt($meta6.to-json);
