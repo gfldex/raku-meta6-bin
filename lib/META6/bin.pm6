@@ -111,7 +111,16 @@ multi sub MAIN(Bool :$check, Str :$meta6-file-name = 'META6.json',
         }
 
         if $meta6-file.parent.child('t').child('meta.t').e {
-            note RED „WARN: meta.t found but missing Test::META module in "depends"“ unless 'Test::META' ∈ $meta6<depends>
+            note RED „WARN: meta.t found but missing Test::META module in "depends"“ unless 'Test::META' ∈ $meta6<depends>;
+        }
+
+        given $meta6<auth> {
+            when Any:U { note RED „No auth field in ⟨$meta6-file⟩.“ }
+            when .Str ~~ / „github:“ (\w+) / {
+                my $github-user = $0;
+                note RED „Github user: "$github-user" seams not to exist.“ unless try-to-fetch-url("http://github.com/$github-user");
+            }
+            default { note RED „Unrecognised auth field in ⟨$meta6-file⟩.“; }
         }
     }
 }
