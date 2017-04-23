@@ -116,7 +116,7 @@ multi sub MAIN(Bool :$check, Str :$meta6-file-name = 'META6.json',
     }
 }
 
-multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-github, :$verbose) {
+multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-github, :$verbose, :$description = '') {
     my $name = $new-module;
     die RED "To create a module --new-module=<Module::Name::Here> is required." unless $name;
     my $base-dir = 'perl6-' ~ $name.subst(:g, '::', '-').fc;
@@ -140,7 +140,7 @@ multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-gith
 
     @tracked-files.append: 'META6.json', 'README.md', '.travis.yml', '.gitignore', 't/meta.t';
 
-    MAIN(:create, :$name, :$base-dir, :$force);
+    MAIN(:create, :$name, :$base-dir, :$force, :$description);
     git-create($base-dir, @tracked-files) unless $skip-git;
     github-create($base-dir) unless $skip-git && $skip-github;
     
