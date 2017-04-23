@@ -193,11 +193,33 @@ multi sub MAIN(:$fork-module, :$force) {
 
 multi sub MAIN(Str :$add-dep, Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json') {
    my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
-   my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
+   my $meta6 = read-meta6($meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
 
-   (note BOLD "Dependency to $add-dep already in META6.json."; return) if $add-dep ∈ $meta6<depends>;
+   sub simple-version(Str $s is copy) {
+       my ($n, $v) = $s.split(':ver');
+       with $v {
+           $v = Version.new($v) if $v;
+           $s = $n;
+       } else {
+           $v = Version.new(*);
+       }
+       $s but role :: { method version { $v } }
+   }
+
+   if my $stored-dep = ($meta6<depends>.grep: *.&simple-version eq $add-dep.&simple-version).first {
+       if $stored-dep.&simple-version.version > $add-dep.&simple-version.version { 
+           note BOLD "Dependency to $add-dep younger then version already in META6.json.";
+           return
+       } else {
+           $meta6<depends> = ($meta6<depends>.grep: *.&simple-version !eq $add-dep.&simple-version).Array;
+       }
+   }
+
+   # (note BOLD "Dependency to $add-dep already in META6.json."; return) if $add-dep.&simple-version ∈ $meta6<depends>».&simple-version;
 
    $meta6<depends>.push($add-dep);
+   dd $meta6<depends>;
+   exit 0;
    $meta6-file.spurt($meta6.to-json);
 }
 
@@ -520,6 +542,10 @@ multi sub read-cfg(Mu:U $path) {
     %h<git><protocol> = 'https';
     
     %h
+}
+
+multi sub read-meta6(IO::Path $path = './META6.json'.IO --> META6:D) is export(:HELPER) {
+    META6.new(file => $path) or fail RED "Failed to process ⟨$path⟩."
 }
 
 our sub fetch-ecosystem is export(:HELPER) {
