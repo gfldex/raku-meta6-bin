@@ -291,6 +291,7 @@ multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed,
 
     for @issues {
         put BOLD "[{.<state>}] {.<title>}";
+        put "⟨{.<html_url>}⟩";
         put .<body>.indent(4);
     }
 }
