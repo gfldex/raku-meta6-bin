@@ -271,23 +271,14 @@ multi sub MAIN(Bool :pr(:$pull-request), Str :$base-dir = '.', Str :$meta6-file-
     github-pull-request($parent-owner, $parent, $title, $message, :head("$github-user:$head"), :$base);
 }
 
-multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed, Bool :$one-line, Bool :$url,
+multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed, Bool :$one-line, Bool :$url, Bool :$deps,
     Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json', :v(:$verbose)
 ) {
-    my ($owner, $repo);
+    my ($owner, $repo) = ($module
+        ?? query-module($module, :$verbose)
+        !! local-module
+    ).<owner repo>;
 
-    if $module {
-        my @ecosystem = fetch-ecosystem(:$verbose, :cached);
-        my $meta6 = @ecosystem.grep(*.<name> eq $module)[0];
-        my $module-url = $meta6<source-url> // $meta6<support><source> // Failure.new('No source url provided by ecosystem.');
-        ($owner, $repo) = $module-url.split('/')[3,4];
-    } else {
-        my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
-        die RED "Can not find ⟨$meta6-file⟩." unless $meta6-file.e;
-        my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
-        my $module-url = $meta6<source-url> // $meta6<support>.source;
-        ($owner, $repo) = $module-url.split('/')[3,4];
-    }
     $repo.subst-mutate(/'.git'$/, '');
     my @issues := github-get-issues($owner, $repo, :$closed);
 
@@ -303,6 +294,13 @@ multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed, Bool :$one-line, Boo
             put "[{.<state>}] {.<title>}";
             put "⟨{.<html_url>}⟩";
             put .<body>.indent(4);
+        }
+    }
+
+    if $deps {
+        for query-deps($module, :$base-dir, :$meta6-file-name, :$verbose) {
+            say "{.Str}";
+            MAIN(:module(.Str), :issues, :$closed, :$one-line, :$url, :$base-dir, :$meta6-file-name, :$verbose);
         }
     }
 }
@@ -654,11 +652,41 @@ our sub fetch-ecosystem(:$verbose, :$cached) is export(:HELPER) {
 }
 
 our sub query-module(Str $module-name, :$verbose) is export(:HELPER) {
-        my @ecosystem = fetch-ecosystem(:$verbose);
-        my $meta6 = @ecosystem.grep(*.<name> eq $module-name)[0];
-        my $module-url = $meta6<source-url> // $meta6<support><source> // Failure.new('No source url provided by ecosystem.');
-        my ($owner, $repo) = $module-url.split('/')[3,4];
+    my @ecosystem = fetch-ecosystem(:$verbose, :cached);
+    my $meta6 = @ecosystem.grep(*.<name> eq $module-name)[0] // Failure.new("Module ⟨$module-name⟩ not found in ecosystem.");
+    my $module-url = $meta6<source-url> // $meta6<support><source> // Failure.new('No source url provided by ecosystem.');
+    my ($owner, $repo) = $module-url.split('/')[3,4];
 
-        return {:$owner, :$repo, :$meta6}
+    return {:$owner, :$repo, :$meta6}
 }
 
+our sub local-module(:$verbose, :$base-dir = '.', :$meta6-file-name = 'META6.json') is export(:HELPER) {
+    my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
+    die RED "Can not find ⟨$meta6-file⟩." unless $meta6-file.e;
+    my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
+    my $module-url = $meta6<source-url> // $meta6<support>.source;
+    my ($owner, $repo) = $module-url.split('/')[3,4];
+
+    return {:$owner, :$repo, :$meta6}
+}
+
+our sub query-deps(Str $module-name?, :$base-dir = '.', :$meta6-file-name = 'META6.json', :$verbose) is export(:HELPER) {
+    state %seen-modules;
+
+    return $module-name if %seen-modules{$module-name}:exists;
+    quietly %seen-modules{$module-name}++;
+    
+    my ($owner, $repo, $meta6) = ($module-name ?? try query-module($module-name, :$verbose) !! local-module(:$base-dir, :$meta6-file-name, :$verbose))<owner repo meta6>;
+
+    my @deps;
+
+    return $module-name unless $meta6<depends> ~~ Positional;
+    
+    for $meta6<depends>.flat {
+        my $name = .split(':ver')[0];
+        @deps.append: $name;
+        @deps.append: query-deps($name, :$base-dir, :$meta6-file-name, :$verbose);
+    }
+
+    @deps.unique.cache
+}
