@@ -269,7 +269,7 @@ multi sub MAIN(Bool :pr(:$pull-request), Str :$base-dir = '.', Str :$meta6-file-
     github-pull-request($parent-owner, $parent, $title, $message, :head("$github-user:$head"), :$base);
 }
 
-multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed, Bool :$one-line,
+multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed, Bool :$one-line, Bool :$url,
     Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json', :v(:$verbose)
 ) {
     my ($owner, $repo);
@@ -295,7 +295,8 @@ multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed, Bool :$one-line,
             .<age> = (now.DateTime - DateTime.new(.<created_at>)).Int;
             my $divider = %divider.keys.grep(-> $k { (.<age> div $k) > 0 }).max;
             ($divider, my $unit) = %divider{$divider}:kv;
-            put "[{.<state>}] {.<title>} [{.<age> div $divider}{$unit}]";
+            my $url-text = $url ?? " ⟨{.<html_url>}⟩" !! '';
+            put "[{.<state>}] {.<title>} [{.<age> div $divider}{$unit}]$url-text";
         } else {
             put "[{.<state>}] {.<title>}";
             put "⟨{.<html_url>}⟩";
