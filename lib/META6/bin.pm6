@@ -61,7 +61,7 @@ sub first-hit($basename) {
     try @path».child($basename).grep({.e & .r}).first
 }
 
-my %cfg = read-cfg(first-hit('meta6.cfg'));
+my %cfg = |read-cfg(Any), |read-cfg(first-hit('meta6.cfg'));
 
 my $timeout = %cfg<general><timeout>.Int // 60;
 my $git-timeout = %cfg<git><timeout>.Int // $timeout // 120;
