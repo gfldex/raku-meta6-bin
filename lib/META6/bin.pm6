@@ -629,3 +629,13 @@ our sub fetch-ecosystem is export(:HELPER) {
     say BOLD "Parsing module list.";
     from-json($ecosystem-response).flat
 }
+
+our sub query-module(Str $module-name) is export(:HELPER) {
+        my @ecosystem = fetch-ecosystem;
+        my $meta6 = @ecosystem.grep(*.<name> eq $module-name)[0];
+        my $module-url = $meta6<source-url> // $meta6<support><source> // Failure.new('No source url provided by ecosystem.');
+        my ($owner, $repo) = $module-url.split('/')[3,4];
+
+        return {:$owner, :$repo, :$meta6}
+}
+
