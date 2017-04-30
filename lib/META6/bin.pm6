@@ -183,8 +183,8 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
     say BOLD "Created ⟨$cfg-dir⟩.";
 }
 
-multi sub MAIN(:$fork-module, :$force) {
-    my @ecosystem = fetch-ecosystem;
+multi sub MAIN(:$fork-module, :$force, :v(:$verbose)) {
+    my @ecosystem = fetch-ecosystem(:$verbose);
     my $meta6 = @ecosystem.grep(*.<name> eq $fork-module)[0];
     my $module-url = $meta6<source-url> // $meta6<support>.source;
     my ($owner, $repo) = $module-url.split('/')[3,4];
@@ -270,12 +270,12 @@ multi sub MAIN(Bool :pr(:$pull-request), Str :$base-dir = '.', Str :$meta6-file-
 }
 
 multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed, Bool :$one-line,
-    Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json',
+    Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json', :v(:$verbose)
 ) {
     my ($owner, $repo);
 
     if $module {
-        my @ecosystem = fetch-ecosystem;
+        my @ecosystem = fetch-ecosystem(:$verbose);
         my $meta6 = @ecosystem.grep(*.<name> eq $module)[0];
         my $module-url = $meta6<source-url> // $meta6<support><source> // Failure.new('No source url provided by ecosystem.');
         ($owner, $repo) = $module-url.split('/')[3,4];
@@ -616,22 +616,22 @@ multi sub read-meta6(IO::Path $path = './META6.json'.IO --> META6:D) is export(:
     META6.new(file => $path) or fail RED "Failed to process ⟨$path⟩."
 }
 
-our sub fetch-ecosystem is export(:HELPER) {
+our sub fetch-ecosystem(:$verbose) is export(:HELPER) {
     my $curl = Proc::Async.new('curl', '--silent', 'http://ecosystem-api.p6c.org/projects.json');
     my Promise $p;
     my $ecosystem-response;
     $curl.stdout.tap: { $ecosystem-response ~= .Str };
 
-    say BOLD "Fetching module list.";
+    note BOLD "Fetching module list." if $verbose;
     await Promise.anyof($p = $curl.start, Promise.at(now + $timeout));
     fail RED "⟨curl⟩ timed out." if $p.status == Broken;
     
-    say BOLD "Parsing module list.";
+    note BOLD "Parsing module list." if $verbose;
     from-json($ecosystem-response).flat
 }
 
-our sub query-module(Str $module-name) is export(:HELPER) {
-        my @ecosystem = fetch-ecosystem;
+our sub query-module(Str $module-name, :$verbose) is export(:HELPER) {
+        my @ecosystem = fetch-ecosystem(:$verbose);
         my $meta6 = @ecosystem.grep(*.<name> eq $module-name)[0];
         my $module-url = $meta6<source-url> // $meta6<support><source> // Failure.new('No source url provided by ecosystem.');
         my ($owner, $repo) = $module-url.split('/')[3,4];
