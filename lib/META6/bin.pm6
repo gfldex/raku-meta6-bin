@@ -277,7 +277,7 @@ multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed,
     if $module {
         my @ecosystem = fetch-ecosystem;
         my $meta6 = @ecosystem.grep(*.<name> eq $module)[0];
-        my $module-url = $meta6<source-url> // $meta6<support>.source;
+        my $module-url = $meta6<source-url> // $meta6<support><source> // Failure.new('No source url provided by ecosystem.');
         ($owner, $repo) = $module-url.split('/')[3,4];
     } else {
         my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
@@ -407,12 +407,15 @@ our sub github-get-issues($owner, $repo, :$closed) is export(:GIT) {
 
     await $curl.start: :$timeout;
 
-    given from-json($github-response) {
+    given from-json($github-response).flat.cache {
         when .<message>:exists {
             fail RED .<message>;
         }
         when .[0].<title>:exists {
             return .item;
+        }
+        when () {
+            return ();
         }
     }
 }
