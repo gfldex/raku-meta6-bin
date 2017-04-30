@@ -269,11 +269,11 @@ multi sub MAIN(Bool :pr(:$pull-request), Str :$base-dir = '.', Str :$meta6-file-
     github-pull-request($parent-owner, $parent, $title, $message, :head("$github-user:$head"), :$base);
 }
 
-multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed,
+multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed, Bool :$one-line,
     Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json',
 ) {
     my ($owner, $repo);
-    
+
     if $module {
         my @ecosystem = fetch-ecosystem;
         my $meta6 = @ecosystem.grep(*.<name> eq $module)[0];
@@ -290,9 +290,17 @@ multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed,
     my @issues := github-get-issues($owner, $repo, :$closed);
 
     for @issues {
-        put BOLD "[{.<state>}] {.<title>}";
-        put "⟨{.<html_url>}⟩";
-        put .<body>.indent(4);
+        if $one-line {
+            my %divider{Int} = 1 => 's', 60 => 'm', 60*60 => 'h', 60*60*24 => 'd', 60*60*24*365 => 'y';
+            .<age> = (now.DateTime - DateTime.new(.<created_at>)).Int;
+            my $divider = %divider.keys.grep(-> $k { (.<age> div $k) > 0 }).max;
+            ($divider, my $unit) = %divider{$divider}:kv;
+            put "[{.<state>}] {.<title>} [{.<age> div $divider}{$unit}]";
+        } else {
+            put "[{.<state>}] {.<title>}";
+            put "⟨{.<html_url>}⟩";
+            put .<body>.indent(4);
+        }
     }
 }
 
