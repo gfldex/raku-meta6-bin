@@ -277,7 +277,7 @@ multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed, Bool :$one-line, Boo
     my ($owner, $repo);
 
     if $module {
-        my @ecosystem = fetch-ecosystem(:$verbose);
+        my @ecosystem = fetch-ecosystem(:$verbose, :cached);
         my $meta6 = @ecosystem.grep(*.<name> eq $module)[0];
         my $module-url = $meta6<source-url> // $meta6<support><source> // Failure.new('No source url provided by ecosystem.');
         ($owner, $repo) = $module-url.split('/')[3,4];
@@ -634,7 +634,10 @@ multi sub read-meta6(IO::Path $path = './META6.json'.IO --> META6:D) is export(:
     META6.new(file => $path) or fail RED "Failed to process ⟨$path⟩."
 }
 
-our sub fetch-ecosystem(:$verbose) is export(:HELPER) {
+our sub fetch-ecosystem(:$verbose, :$cached) is export(:HELPER) {
+    state $cache;
+    return $cache.Slip if $cached && $cache.defined;
+
     my $curl = Proc::Async.new('curl', '--silent', 'http://ecosystem-api.p6c.org/projects.json');
     my Promise $p;
     my $ecosystem-response;
@@ -645,7 +648,9 @@ our sub fetch-ecosystem(:$verbose) is export(:HELPER) {
     fail RED "⟨curl⟩ timed out." if $p.status == Broken;
     
     note BOLD "Parsing module list." if $verbose;
-    from-json($ecosystem-response).flat
+    $cache = from-json($ecosystem-response).flat.cache;
+    
+    $cache.Slip
 }
 
 our sub query-module(Str $module-name, :$verbose) is export(:HELPER) {
