@@ -30,15 +30,15 @@ class Proc::Async::Timeout is Proc::Async is export {
 
 # enum ANSI(reset => 0, bold => 1, underline => 2, inverse => 7, black => 30, red => 31, green => 32, yellow => 33, blue => 34, magenta => 35, cyan => 36, white => 37, default => 39, on_black => 40, on_red => 41, on_green   => 42, on_yellow  => 43, on_blue => 44, on_magenta => 45, on_cyan    => 46, on_white   => 47, on_default => 49);
 
-my &BOLD = sub (*@s) {
+our &BOLD is export(:TERM) = sub (*@s) {
     "\e[1m{@s.join('')}\e[0m"
 }
 
-my &RED = sub (*@s) {
+our &RED is export(:TERM) = sub (*@s) {
     "\e[31m{@s.join('')}\e[0m"
 }
 
-my &RESET = sub (*@s) {
+our &RESET is export(:TERM) = sub (*@s) {
     "\e[0m{@s.join('')}\e[0m"
 }
 
