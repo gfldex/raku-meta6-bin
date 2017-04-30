@@ -40,7 +40,7 @@
   "provides": {
     "META6::bin": "lib/META6/bin.pm6"
   },
-  "version": "0.14.0",
+  "version": "0.14.1",
   "supersedes": {
     
   },
