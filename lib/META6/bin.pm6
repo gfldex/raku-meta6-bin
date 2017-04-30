@@ -175,8 +175,10 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
     # META6::bin config file
     
     general.timeout = 60
+    check.disable-url-check = 0
     git.timeout = 120
     git.protocol = https
+    github.issues.timeout = 30
     
     EOH
 
