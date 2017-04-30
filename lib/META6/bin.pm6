@@ -410,11 +410,25 @@ our sub github-pull-request($owner, $repo, $title, $body = '', :$head = 'master'
 our sub github-get-issues($owner, $repo, :$closed) is export(:GIT) {
     temp $github-user = $github-token ?? $github-user ~ ':' ~ $github-token !! $github-user;
     my $state = $closed ?? '?state=all' !! '?state=open';
-    my $curl = Proc::Async::Timeout.new('curl', '--silent', '-u', $github-user, '-X', 'GET', „https://api.github.com/repos/$owner/$repo/issues$state“);
     my $github-response;
-    $curl.stdout.tap: { $github-response ~= .Str };
 
-    await $curl.start: :$timeout;
+    loop (my $attempt = 1; $attempt ≤ 3; $attempt++) {
+        my $curl = Proc::Async::Timeout.new('curl', '--silent', '-u', $github-user, '-X', 'GET', „https://api.github.com/repos/$owner/$repo/issues$state“);
+        $curl.stdout.tap: { $github-response ~= .Str };
+
+        await $curl.start: :timeout(%cfg<github><issues><timeout>.Int);
+
+        CATCH {
+            when X::Proc::Async::Timeout { 
+                note RED ($attempt < 3) ?? "Github timed out, trying again $attempt/3." !! "Github timed out, giving up.";
+                next if $attempt < 3;
+                last;
+            }
+        }
+        last
+    }
+
+    fail 'No response from Github' unless $github-response;
 
     given from-json($github-response).flat.cache {
         when .<message>:exists {
@@ -609,6 +623,7 @@ multi sub read-cfg(Mu:U $path) {
     %h<check><disable-url-check> = 0; 
     %h<git><timeout> = 60;
     %h<git><protocol> = 'https';
+    %h<github><issues><timeout> = 30;
     
     %h
 }
