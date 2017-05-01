@@ -300,7 +300,7 @@ multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed, Bool :$one-line, Boo
     if $deps {
         for query-deps($module, :$base-dir, :$meta6-file-name, :$verbose) {
             say "{.Str}";
-            MAIN(:module(.Str), :issues, :$closed, :$one-line, :$url, :$base-dir, :$meta6-file-name, :$verbose);
+            try MAIN(:module(.Str), :issues, :$closed, :$one-line, :$url, :$base-dir, :$meta6-file-name, :$verbose);
         }
     }
 }
