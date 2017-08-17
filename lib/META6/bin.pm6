@@ -44,7 +44,7 @@ our &RESET is export(:TERM) = sub (*@s) {
 
 &BOLD = &RED = &RESET = sub (Stringy $s) { $s } unless $*OUT.t;
 
-my $git-config = quietly git-config;
+my $git-config = git-config;
 
 my @path = "%*ENV<HOME>/.meta6"».IO;
 my $cfg-dir = %*ENV<HOME>.IO.child('.meta6');
