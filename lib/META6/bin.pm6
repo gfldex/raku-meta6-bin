@@ -635,7 +635,7 @@ our sub fetch-ecosystem(:$verbose, :$cached) is export(:HELPER) {
     state $cache;
     return $cache.Slip if $cached && $cache.defined;
 
-    my $curl = Proc::Async.new('curl', '--silent', 'http://ecosystem-api.p6c.org/projects.json');
+    my $curl = Proc::Async.new('curl', '--silent', 'https://ecosystem-api.p6c.org/projects.json');
     my Promise $p;
     my $ecosystem-response;
     $curl.stdout.tap: { $ecosystem-response ~= .Str };
