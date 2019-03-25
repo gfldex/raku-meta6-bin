@@ -138,8 +138,8 @@ multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-gith
     say BOLD "Creating new module $name under ⟨$base-dir⟩.";
     $base-dir.IO.mkdir or die RED "Cannot create ⟨$base-dir⟩: $!";
 
+    pre-create-hook($base-dir);
     unless $skip-skeleton {
-        pre-create-hook($base-dir);
 
         for <lib t bin example> {
             my $dir = $base-dir ~ '/' ~ .Str;
