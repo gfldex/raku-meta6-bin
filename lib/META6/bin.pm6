@@ -149,10 +149,15 @@ multi sub MAIN(Str :$new-module, Bool :$force, Bool :$skip-git, Bool :$skip-gith
         create-readme($base-dir, $name);
         create-meta-t($base-dir);
         create-travis-yml($base-dir);
-        create-gitignore($base-dir);
-        @tracked-files = copy-skeleton-files($base-dir)».IO».basename;
+    }
 
-        @tracked-files.append: 'META6.json', 'README.md', '.travis.yml', '.gitignore', 't/meta.t';
+    create-gitignore($base-dir);
+    @tracked-files.append: '.gitignore';
+
+    unless $skip-skeleton {
+        @tracked-files.append: copy-skeleton-files($base-dir)».IO».basename;
+
+        @tracked-files.append: 'META6.json', 'README.md', '.travis.yml', 't/meta.t';
 
         MAIN(:create, :$name, :$base-dir, :$force, :$description);
     }
