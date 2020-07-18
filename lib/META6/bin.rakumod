@@ -629,7 +629,7 @@ multi sub read-cfg(Mu:U $path) {
     my %h;
     %h<general><timeout> = 60;
     %h<check><disable-url-check> = 0; 
-    %h<create><prefix> = 'perl6-';
+    %h<create><prefix> = 'raku-';
     %h<git><timeout> = 60;
     %h<git><protocol> = 'https';
     %h<github><issues><timeout> = 30;

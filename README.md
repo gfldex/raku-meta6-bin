@@ -1,5 +1,5 @@
 # META6::bin
-[![Build Status](https://travis-ci.org/gfldex/perl6-meta6-bin.svg?branch=master)](https://travis-ci.org/gfldex/perl6-meta6-bin)
+[![Build Status](https://travis-ci.org/gfldex/raku-meta6-bin.svg?branch=master)](https://travis-ci.org/gfldex/raku-meta6-bin)
 
 Create and check META6.json files and module skeletons.
 
@@ -56,7 +56,7 @@ Module skeletons include basic directories, `META6.json`, `t/meta.t`,
     --base-dir # the $*CWD for all local file operations
 
 Will create a new module project in a new directory with a name prefixed with
-`create.prefix` (default `perl6-`), setup git, push it to github (See Github
+`create.prefix` (default `raku-`), setup git, push it to github (See Github
 below). The skeleton from the config dir `~/.meta6` will be applied (see Config
 Dir below).
 
