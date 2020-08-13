@@ -5,8 +5,6 @@ use HTTP::Client;
 use Git::Config;
 use JSON::Fast;
 
-use Data::Dump::Tree;
-
 unit module META6::bin;
 
 class X::Proc::Async::Timeout is Exception {
@@ -200,7 +198,6 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
 multi sub MAIN(:$fork-module, :$force, :v(:$verbose)) {
     my @ecosystem = fetch-ecosystem(:$verbose);
     my $meta6 = @ecosystem.grep(*.<name> eq $fork-module)[0];
-    ddt $meta6;
     my $module-url = $meta6<support><source>;
     my ($owner, $repo) = $module-url.split('/')[3,4];
     $repo.=subst(/'.git'$/, '');
