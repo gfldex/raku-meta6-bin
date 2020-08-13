@@ -3,7 +3,9 @@ use v6.c;
 use META6;
 use HTTP::Client;
 use Git::Config;
-use JSON::Tiny;
+use JSON::Fast;
+
+use Data::Dump::Tree;
 
 unit module META6::bin;
 
@@ -198,7 +200,8 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
 multi sub MAIN(:$fork-module, :$force, :v(:$verbose)) {
     my @ecosystem = fetch-ecosystem(:$verbose);
     my $meta6 = @ecosystem.grep(*.<name> eq $fork-module)[0];
-    my $module-url = $meta6<source-url> // $meta6<support>.source;
+    ddt $meta6;
+    my $module-url = $meta6<support><source>;
     my ($owner, $repo) = $module-url.split('/')[3,4];
     $repo.=subst(/'.git'$/, '');
     my $repo-url = github-fork($owner, $repo);
@@ -645,17 +648,24 @@ our sub fetch-ecosystem(:$verbose, :$cached) is export(:HELPER) {
     state $cache;
     return $cache.Slip if $cached && $cache.defined;
 
-    my $curl = Proc::Async.new('curl', '--silent', 'https://ecosystem-api.p6c.org/projects.json');
-    my Promise $p;
-    my $ecosystem-response;
-    $curl.stdout.tap: { $ecosystem-response ~= .Str };
+    my $p6c-org = Proc::Async.new('curl', '--silent', 'https://ecosystem-api.p6c.org/projects.json');
+    my Promise $p1;
+    my $p6c-response;
+    $p6c-org.stdout.tap: { $p6c-response ~= .Str };
+
+    my $cpan-org = Proc::Async.new('curl', '--silent', 'https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan.json');
+    my Promise $p2;
+    my $cpan-response;
+    $cpan-org.stdout.tap: { $cpan-response ~= .Str };
 
     note BOLD "Fetching module list." if $verbose;
-    await Promise.anyof($p = $curl.start, Promise.at(now + $timeout));
-    fail RED "⟨curl⟩ timed out." if $p.status == Broken;
+    await Promise.anyof(Promise.allof(($p1 = $p6c-org.start), ($p2 = $cpan-org.start)), Promise.at(now + $timeout));
+    fail RED "⟨curl⟩ timed out." if $p1.status|$p2.status == Broken;
     
     note BOLD "Parsing module list." if $verbose;
-    $cache = from-json($ecosystem-response).flat.cache;
+    $cache = flat
+        from-json($p6c-response).flat.cache,
+        from-json($cpan-response).flat.cache;
     
     $cache.Slip
 }
