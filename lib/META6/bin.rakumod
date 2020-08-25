@@ -505,7 +505,7 @@ our sub git-commit(@files, $message, :$base-dir, :$verbose) is export(:GIT) {
     await $git.start(timeout => $git-timeout, cwd => $*CWD.child($base-dir));
 }
 
-our sub git-log(:$base-dir) {
+our sub git-log(:$base-dir) is export(:GIT) {
     my Str $git-response;
 
     my $git = Proc::Async::Timeout.new('git', 'log', '--pretty=oneline');
