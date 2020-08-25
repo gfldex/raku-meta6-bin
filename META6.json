@@ -40,7 +40,7 @@
   "provides": {
     "META6::bin": "lib/META6/bin.rakumod"
   },
-  "version": "0.16.7",
+  "version": "0.16.8",
   "supersedes": {
     
   },
