@@ -197,8 +197,8 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
 
 multi sub MAIN(:$fork-module, :$force, :v(:$verbose)) {
     my @ecosystem = fetch-ecosystem(:$verbose);
-    my $meta6 = @ecosystem.grep(*.<name> eq $fork-module)[0];
-    my $module-url = $meta6<support><source>;
+    my $meta6 = @ecosystem.grep(*.<name> eq $fork-module)[0] // fail(„Module ⟨$fork-module⟩ not found in ecosystem.“);
+    my $module-url = $meta6<support><source> // $meta6<source-url> // fail(„No source URL found in ecosystem response.“);
     my ($owner, $repo) = $module-url.split('/')[3,4];
     $repo.=subst(/'.git'$/, '');
     my $repo-url = github-fork($owner, $repo);
@@ -645,7 +645,7 @@ our sub fetch-ecosystem(:$verbose, :$cached) is export(:HELPER) {
     state $cache;
     return $cache.Slip if $cached && $cache.defined;
 
-    my $p6c-org = Proc::Async.new('curl', '--silent', 'https://ecosystem-api.p6c.org/projects.json');
+    my $p6c-org = Proc::Async.new('curl', '--silent', 'https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c.json');
     my Promise $p1;
     my $p6c-response;
     $p6c-org.stdout.tap: { $p6c-response ~= .Str };
