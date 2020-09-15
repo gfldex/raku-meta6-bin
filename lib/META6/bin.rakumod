@@ -313,6 +313,51 @@ multi sub MAIN(Str :$module, Bool :$issues!, Bool :$closed, Bool :$one-line, Boo
     }
 }
 
+multi sub MAIN(Bool :$release!, :$version? is copy,
+    Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json', :v(:$verbose)
+) {
+    temp $version;
+    my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
+    my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
+
+    given $version {
+        my $v := $meta6.version;
+        when '+' { $version = Version.new: ($v.parts[0], $v.parts[1], $v.parts[2].succ).join('.'); }
+        when '++' { $version = Version.new: ($v.parts[0], $v.parts[1].succ, $v.parts[2]).join('.'); }
+        when '+++' { $version = Version.new: ($v.parts[0].succ, $v.parts[1], $v.parts[2]).join('.'); }
+        when .defined { 
+            $version = Version.new($version.subst(/^ 'v'/, ''));
+        }
+        default { $version = $meta6.version; }
+    }
+    $meta6.version = $version;
+
+    say $meta6.version, $version;
+
+    my $owner = $github-user;
+    my $name = $meta6.name;
+    my $prefix = %cfg<create><prefix>;
+
+    my $repo = $prefix ~ $name.subst(:g, '::', '-').fc;
+    my $tag = $repo ~ '-' ~ $version;
+
+    # https://github.com/gfldex/raku-release-test/archive/release-test-0.0.13.tar.gz
+    $meta6.source-url = "https://github.com/$owner/$repo/archive/" ~ $tag ~ '.tar.gz';
+
+    $meta6.production = True;
+
+    $meta6-file.spurt($meta6.to-json);
+
+    git-commit([$meta6-file], "releasing as $version", :$base-dir, :$verbose);
+    
+
+    git-tag($tag, :$base-dir, :$verbose);
+    git-push($base-dir, :$verbose);
+    git-push-tag($tag, :$base-dir);
+
+    github-create-release($owner, $repo, $tag);
+}
+
 our sub git-create($base-dir, @tracked-files, :$verbose) is export(:GIT) {
     my Promise $p;
 
@@ -451,6 +496,29 @@ our sub github-get-issues($owner, $repo, :$closed) is export(:GIT) {
     }
 }
 
+our sub github-create-release($owner, $repo, $tag) is export(:GIT) {
+    temp $github-user = $github-token ?? $github-user ~ ':' ~ $github-token !! $github-user;
+    
+    my $curl = Proc::Async::Timeout.new('curl', '--silent', '--user', $github-user, '--request', 'POST', '--data', to-json({ tag_name => $tag }), „https://api.github.com/repos/$owner/$repo/releases“);
+    my $github-response;
+    $curl.stdout.tap: { $github-response ~= .Str };
+
+    say BOLD "Creating release $tag.";
+    await $curl.start(:$timeout);
+
+    given from-json($github-response) {
+        when .<message>:exists {
+            dd $github-response;
+            fail RED .<message>;
+        }
+        when .<tarball_url>:exists {
+            say BOLD 'tarball created at ' ~ .<html_url> ~ '.';
+            return .<html_url>;
+        }
+    }
+
+}
+
 our sub git-push($base-dir, :$verbose) is export(:GIT) {
     my Promise $p;
     my $protocol = %cfg<git><protocol>;
@@ -514,6 +582,26 @@ our sub git-log(:$base-dir) is export(:GIT) {
     await $git.start(timeout => $git-timeout, cwd => $*CWD.child($base-dir));
     
     $git-response.lines».substr(41)
+}
+
+our sub git-tag($version, :$base-dir, :$verbose) is export(:GIT) {
+    my Str $git-response;
+
+    my $git = Proc::Async.new('git', 'tag', '-a', $version, '-m', "Release as $version.");
+    $git.stdout.tap: { $git-response ~= .Str };
+    
+    my $p = await $git.start(cwd => $*CWD.child($base-dir));
+    die RED „git tag failed for $version.“ if $p.exitcode;
+}
+
+our sub git-push-tag($version, :$base-dir, :$verbose) is export(:GIT) {
+    my $git = Proc::Async.new('git', '-C', $base-dir, 'push', 'origin', $version);
+    $git.stdout.tap: { Nil } unless $verbose;
+    my $timeout = Promise.at(now + $git-timeout);
+    
+    await Promise.anyof(my $p = $git.start, $timeout);
+    fail RED "⟨git push⟩ timed out." if $timeout.status == Kept;
+    die RED „git push tag failed for $version.“ if $p.result.exitcode;
 }
 
 our sub create-readme($base-dir, $name) is export(:CREATE) {
