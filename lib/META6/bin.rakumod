@@ -333,8 +333,6 @@ multi sub MAIN(Bool :$release!, :$version? is copy,
     }
     $meta6.version = $version;
 
-    say $meta6.version, $version;
-
     my $owner = $github-user;
     my $name = $meta6.name;
     my $prefix = %cfg<create><prefix>;
@@ -342,7 +340,6 @@ multi sub MAIN(Bool :$release!, :$version? is copy,
     my $repo = $prefix ~ $name.subst(:g, '::', '-').fc;
     my $tag = $repo ~ '-' ~ $version;
 
-    # https://github.com/gfldex/raku-release-test/archive/release-test-0.0.13.tar.gz
     $meta6.source-url = "https://github.com/$owner/$repo/archive/" ~ $tag ~ '.tar.gz';
 
     $meta6.production = True;
@@ -350,7 +347,6 @@ multi sub MAIN(Bool :$release!, :$version? is copy,
     $meta6-file.spurt($meta6.to-json);
 
     git-commit([$meta6-file], "releasing as $version", :$base-dir, :$verbose);
-    
 
     git-tag($tag, :$base-dir, :$verbose);
     git-push($base-dir, :$verbose);
