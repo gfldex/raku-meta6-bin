@@ -508,7 +508,7 @@ our sub github-create-release($owner, $repo, $tag) is export(:GIT) {
             fail RED .<message>;
         }
         when .<tarball_url>:exists {
-            say BOLD 'tarball created at ' ~ .<html_url> ~ '.';
+            say BOLD 'Tarball created at ⟨' ~ .<html_url> ~ '⟩.';
             return .<html_url>;
         }
     }
