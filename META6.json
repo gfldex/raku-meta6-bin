@@ -2,7 +2,6 @@
   "name": "META6::bin",
   "source-url": "https://github.com/gfldex/raku-meta6-bin.git",
   "support": {
-    "source": null
   },
   "emulates": {
     
@@ -40,7 +39,7 @@
   "provides": {
     "META6::bin": "lib/META6/bin.rakumod"
   },
-  "version": "0.16.8",
+  "version": "0.17.8",
   "supersedes": {
     
   },
