@@ -504,7 +504,6 @@ our sub github-create-release($owner, $repo, $tag) is export(:GIT) {
 
     given from-json($github-response) {
         when .<message>:exists {
-            dd $github-response;
             fail RED .<message>;
         }
         when .<tarball_url>:exists {
