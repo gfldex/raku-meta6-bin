@@ -317,7 +317,6 @@ multi sub MAIN(Bool :$release!, :$version? is copy,
     Str :$base-dir = '.', Str :$meta6-file-name = 'META6.json', :v(:$verbose)
 ) {
     # FIXME check if we are on master
-    temp $version;
     my IO::Path $meta6-file = ($base-dir ~ '/' ~ $meta6-file-name).IO;
     my $meta6 = META6.new(file => $meta6-file) or die RED "Failed to process ⟨$meta6-file⟩.";
 
