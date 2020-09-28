@@ -323,8 +323,8 @@ multi sub MAIN(Bool :$release!, :$version? is copy,
     given $version {
         my $v := $meta6.version;
         when '+' { $version = Version.new: ($v.parts[0], $v.parts[1], $v.parts[2].succ).join('.'); }
-        when '++' { $version = Version.new: ($v.parts[0], $v.parts[1].succ, $v.parts[2]).join('.'); }
-        when '+++' { $version = Version.new: ($v.parts[0].succ, $v.parts[1], $v.parts[2]).join('.'); }
+        when '++' { $version = Version.new: ($v.parts[0], $v.parts[1].succ, 0).join('.'); }
+        when '+++' { $version = Version.new: ($v.parts[0].succ, 0, 0).join('.'); }
         when .defined { 
             $version = Version.new($version.subst(/^ 'v'/, ''));
         }
