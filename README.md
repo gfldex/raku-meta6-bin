@@ -22,6 +22,7 @@ Module skeletons include basic directories, `META6.json`, `t/meta.t`,
     meta6 --issues --module=<Optional::Module::Name> --closed --one-line --url --deps --verbose
     meta6 --set-license="license name or URL"
     meta6 --add-author="Another T. Author <another.t.author@somewhere.place>"
+    meta6 --release --version=1.2.3
 
 ## Use as a Module
 
@@ -80,6 +81,17 @@ local git repo.
 
 Pull request need to tell github where to create the PR at. That in turn
 requires a proper `META6.json` to get the repo name from.
+
+# Releasing a module
+
+To create a release on github use `--release`. The optional parameter
+`--version` takes a string that is used as a version and stored in the
+META6.json-file. Versions can be incremented with `+`, `++`, `+++` for the
+parts of a version with the form `1.2.3`. A single `+` will change the
+revision, `++` the miner version and `+++` the major.
+
+A github-tag will be created and is the base of the release. The `source-url`
+field in the META6.json is set to the tarball of the release on github.
 
 # Config Dir
 
