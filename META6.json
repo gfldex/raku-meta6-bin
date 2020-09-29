@@ -1,4 +1,8 @@
 {
+  "auth": "github:gfldex",
+  "authors": [
+    "Wenzel P. P. Peppmeyer"
+  ],
   "build-depends": [
   ],
   "depends": [
@@ -10,28 +14,25 @@
     "Slippy::Semilist",
     "MIME::Base64"
   ],
-  "source-url": "https://github.com/gfldex/raku-meta6-bin/archive/raku-meta6-bin-0.17.9.tar.gz",
-  "auth": "github:gfldex",
-  "resources": [
-  ],
-  "authors": [
-    "Wenzel P. P. Peppmeyer"
-  ],
   "description": "Provide a binary to work with META6.json-files.",
-  "tags": [
-  ],
-  "version": "0.17.9",
+  "license": "Artistic-2.0",
+  "meta-version": "0",
+  "name": "META6::bin",
+  "perl": "6.c",
+  "production": true,
   "provides": {
     "META6::bin": "lib/META6/bin.rakumod"
   },
-  "perl": "6.c",
-  "test-depends": [
+  "raku": null,
+  "resources": [
   ],
-  "name": "META6::bin",
-  "license": "Artistic-2.0",
-  "production": true,
-  "meta-version": "0",
+  "source-url": "https://github.com/gfldex/raku-meta6-bin/archive/raku-meta6-bin-0.17.10.tar.gz",
   "support": {
     "source": null
-  }
+  },
+  "tags": [
+  ],
+  "test-depends": [
+  ],
+  "version": "0.17.10"
 }
