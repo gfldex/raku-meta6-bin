@@ -5,6 +5,8 @@ use HTTP::Client;
 use Git::Config;
 use JSON::Fast;
 
+META6.^can('to-json')[0].wrap(-> |c { callwith |c, :sorted-keys});
+
 unit module META6::bin;
 
 class X::Proc::Async::Timeout is Exception {
