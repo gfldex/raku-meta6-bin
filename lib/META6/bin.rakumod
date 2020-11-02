@@ -204,7 +204,7 @@ multi sub MAIN(:$fork-module, :$force, :v(:$verbose)) {
     my ($owner, $repo) = $module-url.split('/')[3,4];
     $repo.=subst(/'.git'$/, '');
     my $repo-url = github-fork($owner, $repo);
-    my $base-dir = git-clone($repo-url);
+    my $base-dir = git-clone($repo-url) // fail(„No target URL returned by github clone.“);
     note BOLD "Cloned repo ready in ⟨$base-dir⟩.";
     note RED "WARN: no META6.json found" unless "$base-dir/META6.json".IO.e;
     if "$base-dir/META6.json".IO.e && !"$base-dir/t/meta.t".IO.e {
