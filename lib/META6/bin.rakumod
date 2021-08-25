@@ -198,9 +198,14 @@ multi sub MAIN(:$create-cfg-dir, Bool :$force) {
 }
 
 multi sub MAIN(:$fork-module, :$force, :v(:$verbose)) {
-    my @ecosystem = fetch-ecosystem(:$verbose);
-    my $meta6 = @ecosystem.grep(*.<name> eq $fork-module)[0] // fail(„Module ⟨$fork-module⟩ not found in ecosystem.“);
-    my $module-url = $meta6<support><source> // $meta6<source-url> // fail(„No source URL found in ecosystem response.“);
+    my $module-url;
+    if $fork-module ~~ /^ [ 'https://' || 'http:// ' ] / {
+        $module-url = $fork-module;
+    } else {
+        my @ecosystem = fetch-ecosystem(:$verbose);
+        my $meta6 = @ecosystem.grep(*.<name> eq $fork-module)[0] // fail(„Module ⟨$fork-module⟩ not found in ecosystem.“);
+        my $module-url = $meta6<support><source> // $meta6<source-url> // fail(„No source URL found in ecosystem response.“);
+    }
     my ($owner, $repo) = $module-url.split('/')[3,4];
     $repo.=subst(/'.git'$/, '');
     my $repo-url = github-fork($owner, $repo);
@@ -406,7 +411,7 @@ our sub github-fork($owner, $repo) is export(:GIT) {
     my $github-response;
     $curl.stdout.tap: { $github-response ~= .Str };
 
-    say BOLD "Forking github repo.";
+    say BOLD "Forking github repo from $repo.";
     await $curl.start: :$timeout;
     
     given from-json($github-response) {
