@@ -26,7 +26,7 @@
   "raku": null,
   "resources": [
   ],
-  "source-url": "https://github.com/gfldex/raku-meta6-bin/archive/raku-meta6-bin-0.17.10.tar.gz",
+  "source-url": "https://github.com/gfldex/raku-meta6-bin/archive/raku-meta6-bin-1.0.0.tar.gz",
   "support": {
     "source": null
   },
@@ -34,5 +34,5 @@
   ],
   "test-depends": [
   ],
-  "version": "0.17.10"
+  "version": "1.0.0"
 }
